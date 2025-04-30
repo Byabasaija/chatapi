@@ -22,4 +22,4 @@ An Open Source free in-app messaging/chating and notifications API service.
 
 ## License
 
-The Full Stack FastAPI Template is licensed under the terms of the MIT license.
+The ChatAPI project is licensed under the terms of the MIT license.
