@@ -43,9 +43,9 @@ services:
       - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
 
   prestart:
-    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
     build:
-      context: ./backend
+      context: ./chatapi
     networks:
       - traefik-public
       - default
@@ -58,7 +58,6 @@ services:
       - .env
     environment:
       - DOMAIN=${DOMAIN}
-      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
       - ENVIRONMENT=${ENVIRONMENT}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY?Variable not set}
@@ -75,8 +74,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
 
-  backend:
-    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+  chatapi:
+    image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
     restart: always
     networks:
       - traefik-public
@@ -91,7 +90,6 @@ services:
       - .env
     environment:
       - DOMAIN=${DOMAIN}
-      - FRONTEND_HOST=${FRONTEND_HOST?Variable not set}
       - ENVIRONMENT=${ENVIRONMENT}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY?Variable not set}
@@ -115,7 +113,7 @@ services:
       retries: 5
 
     build:
-      context: ./backend
+      context: ./chatapi
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik-public

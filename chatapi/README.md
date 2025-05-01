@@ -13,7 +13,7 @@ Start the local development environment with Docker Compose following the guide 
 
 By default, the dependencies are managed with [uv](https://docs.astral.sh/uv/), go there and install it.
 
-From `./backend/` you can install all the dependencies with:
+From `./chatapi/` you can install all the dependencies with:
 
 ```console
 $ uv sync

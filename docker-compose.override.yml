@@ -49,12 +49,12 @@ services:
     ports:
       - "8080:8080"
 
-  backend:
+  chatapi:
     restart: "no"
     ports:
       - "8000:8000"
     build:
-      context: ./backend
+      context: ./chatapi
     # command: sleep infinity  # Infinite loop to keep container alive doing nothing
     command:
       - fastapi
@@ -63,17 +63,17 @@ services:
       - "app/main.py"
     develop:
       watch:
-        - path: ./backend
+        - path: ./chatapi
           action: sync
           target: /app
           ignore:
-            - ./backend/.venv
+            - ./chatapi/.venv
             - .venv
-        - path: ./backend/pyproject.toml
+        - path: ./chatapi/pyproject.toml
           action: rebuild
     # TODO: remove once coverage is done locally
     volumes:
-      - ./backend/htmlcov:/app/htmlcov
+      - ./chatapi/htmlcov:/app/htmlcov
     environment:
       SMTP_HOST: "mailcatcher"
       SMTP_PORT: "1025"
