@@ -1,3 +1,5 @@
+version: '3.7'
+
 services:
 
   db:
@@ -23,31 +25,20 @@ services:
     image: adminer
     restart: always
     networks:
-      - traefik-public
       - default
     depends_on:
       - db
     environment:
       - ADMINER_DESIGN=pepa-linha-dark
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.rule=Host(`adminer.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.entrypoints=http
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.middlewares=https-redirect
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.rule=Host(`adminer.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls.certresolver=le
-      - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
+    ports:
+      - "8080:8080"  # Exposing Adminer on port 8080
+    # Removed Traefik labels
 
   prestart:
     image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
     build:
       context: ./chatapi
     networks:
-      - traefik-public
       - default
     depends_on:
       db:
@@ -61,12 +52,6 @@ services:
       - ENVIRONMENT=${ENVIRONMENT}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY?Variable not set}
-      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
-      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
       - POSTGRES_SERVER=db
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB}
@@ -78,7 +63,6 @@ services:
     image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
     restart: always
     networks:
-      - traefik-public
       - default
     depends_on:
       db:
@@ -93,19 +77,14 @@ services:
       - ENVIRONMENT=${ENVIRONMENT}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY?Variable not set}
-      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
-      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
       - POSTGRES_SERVER=db
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
-
+    ports:
+      - "8000:8000"  # Exposing the Chat API on port 8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
       interval: 10s
@@ -114,28 +93,11 @@ services:
 
     build:
       context: ./chatapi
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-
-      - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=8000
-
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`api.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
-
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.rule=Host(`api.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls.certresolver=le
-
-      # Enable redirection for HTTP and HTTPS
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect
 
 volumes:
   app-db-data:
 
 networks:
-  traefik-public:
-    # Allow setting it to false for testing
-    external: true
+  default:
+    # Internal network to link services together
+    driver: bridge
