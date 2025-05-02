@@ -205,3 +205,26 @@ Adminer: http://localhost.tiangolo.com:8080
 Traefik UI: http://localhost.tiangolo.com:8090
 
 MailCatcher: http://localhost.tiangolo.com:1080
+
+
+- ✨ **New Feature** – Add new functionality  
+- 🐛 **Bug Fix** – Fix a bug  
+- ♻️ **Refactor** – Code restructuring without behavior change  
+- 🔥 **Remove** – Delete code or files  
+- 📝 **Docs** – Documentation changes  
+- 🎨 **Style** – Code style changes (formatting, etc.)  
+- ✅ **Tests** – Add or update tests  
+- 🔧 **Config** – Update config/build scripts  
+- 🚀 **Performance** – Improve performance  
+- 💄 **UI** – Update UI styles  
+- 🚨 **Linter** – Fix compiler/linter warnings  
+- 🗃️ **DB** – Database related changes  
+- 🔒 **Security** – Fix security issues  
+- ⬆️ **Upgrade** – Upgrade dependencies  
+- ⬇️ **Downgrade** – Downgrade dependencies  
+- 👷 **CI** – CI/CD changes  
+- 📦 **Package** – Package-related changes  
+- 💥 **Breaking Change** – Breaking API/logic change  
+- ⏪ **Revert** – Revert previous commit  
+- 🚧 **WIP** – Work in progress  
+- 🧪 **Experiment** – Experimental code/tests
