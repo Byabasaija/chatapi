@@ -1,4 +1,6 @@
-name: Test Backend
+name: Test ChatAPI
+# This workflow runs the tests for the ChatAPI project.
+# It is triggered on push to the master branch and on pull request events.
 
 on:
   push:
@@ -10,7 +12,7 @@ on:
       - synchronize
 
 jobs:
-  test-backend:
+  test-chatapi:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,14 +30,14 @@ jobs:
       - run: docker compose up -d db mailcatcher
       - name: Migrate DB
         run: uv run bash scripts/prestart.sh
-        working-directory: backend
+        working-directory: /
       - name: Run tests
         run: uv run bash scripts/tests-start.sh "Coverage for ${{ github.sha }}"
-        working-directory: backend
+        working-directory: /
       - run: docker compose down -v --remove-orphans
       - name: Store coverage files
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
-          path: backend/htmlcov
+          path: /htmlcov
           include-hidden-files: true

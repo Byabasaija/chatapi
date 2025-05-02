@@ -1,4 +1,8 @@
-name: Lint Backend
+name: Lint ChatAPI
+# This workflow runs the linter for the ChatAPI project.
+# It is triggered on push to the master branch and on pull request events.
+# It uses the `uv` tool to run the linter script located in `scripts/lint.sh`.
+# The linter is run in a Docker container, and the working directory is set to the root of the project.
 
 on:
   push:
@@ -25,4 +29,4 @@ jobs:
           version: "0.4.15"
           enable-cache: true
       - run: uv run bash scripts/lint.sh
-        working-directory: backend
+        working-directory: /

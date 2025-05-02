@@ -20,4 +20,3 @@ internal:
         - .pre-commit-config.yaml
       - all-globs-to-all-files:
         - '!./**/*.md'
-        - '!chatapi/**'
