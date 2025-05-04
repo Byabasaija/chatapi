@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     restart: "no"
 
-  chatapi:
+  app:
     ports:
       - "8000:8000"
     build:
@@ -32,12 +32,6 @@ services:
     volumes:
       - ./htmlcov:/app/htmlcov
     restart: "no"
-
-  mailcatcher:
-    image: schickling/mailcatcher
-    ports:
-      - "1080:1080"
-      - "1025:1025"
 
 networks:
   default:
