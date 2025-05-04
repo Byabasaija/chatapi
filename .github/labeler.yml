@@ -4,7 +4,7 @@ docs:
       - any-glob-to-any-file:
         - '**/*.md'
       - all-globs-to-all-files:
-        - '!chatapi/**'
+        - '!./**'
         - '!.github/**'
         - '!scripts/**'
         - '!.gitignore'

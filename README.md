@@ -1,7 +1,7 @@
 # ChatAPI
 An Open Source free in-app messaging/chating and notifications API service.
 
-## Technology Stack and Features
+<!-- ## Technology Stack and Features
 
 - ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python  API.
     - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) for the Python SQL database interactions (ORM).
@@ -11,10 +11,10 @@ An Open Source free in-app messaging/chating and notifications API service.
 - 📫 Email based password recovery.
 - ✅ Tests with [Pytest](https://pytest.org).
 - 🏭 CI (continuous integration) and CD (continuous deployment) based on GitHub Actions.
+-->
 
 
-
-## How To Use It
+## Documentation(#TO-DO)
 
 ## License
 
