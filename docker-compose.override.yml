@@ -1,7 +1,7 @@
 services:
   db:
     ports:
-      - "5432:5432"
+      - "5433:5432"
     restart: "no"
 
   adminer:
@@ -13,7 +13,7 @@ services:
     ports:
       - "8000:8000"
     build:
-      context: ./chatapi
+      context: ./
     command:
       - fastapi
       - run
@@ -21,16 +21,16 @@ services:
       - "app/main.py"
     develop:
       watch:
-        - path: ./chatapi
+        - path: ./
           action: sync
           target: /app
           ignore:
-            - ./chatapi/.venv
+            - ./venv
             - .venv
-        - path: ./chatapi/pyproject.toml
+        - path: ./pyproject.toml
           action: rebuild
     volumes:
-      - ./chatapi/htmlcov:/app/htmlcov
+      - ./htmlcov:/app/htmlcov
     restart: "no"
 
   mailcatcher:
