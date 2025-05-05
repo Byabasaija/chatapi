@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends
-from pydantic.networks import EmailStr
+from fastapi import APIRouter
 
-router = APIRouter(prefix="/utils", tags=["utils"])
+router = APIRouter()
+
 
 @router.get("/health-check/")
 async def health_check() -> bool:
