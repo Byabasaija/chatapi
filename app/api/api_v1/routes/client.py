@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from app.api.deps import get_db
 from app.core.security import hash_api_key
-from app.db.models.api_client import APIClient, APIClientCreate, APIClientReadWithKey
+from app.models.api_client import APIClient, APIClientCreate, APIClientReadWithKey
 
 router = APIRouter()
 
