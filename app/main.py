@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.api_v1.main import api_router
+from app.api.api_v1.rest_api import rest_api_router
+from app.api.api_v1.web_sockets import web_sockets_router
 from app.core.config import settings
 
 
@@ -30,4 +31,5 @@ if settings.all_cors_origins:
         allow_headers=["*"],
     )
 
-app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(rest_api_router, prefix=settings.API_V1_STR)
+app.include_router(web_sockets_router)

@@ -3,7 +3,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 router = APIRouter()
 
 
-@router.websocket("ws/ping")
+@router.websocket("/ping")
 async def websocket_ping(websocket: WebSocket):
     await websocket.accept()
     try:
