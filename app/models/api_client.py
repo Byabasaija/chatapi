@@ -6,6 +6,7 @@ from sqlmodel import Field, SQLModel
 
 class APIClientBase(SQLModel):
     name: str | None = None
+    encryption_mode: str = Field(default=None)
 
 
 class APIClient(APIClientBase, table=True):
@@ -20,7 +21,7 @@ class APIClientRead(APIClientBase):
 
 
 class APIClientCreate(APIClientBase):
-    pass  # no api_key, server handles it
+    pass
 
 
 class APIClientReadWithKey(APIClientRead):
