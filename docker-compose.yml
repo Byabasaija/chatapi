@@ -58,7 +58,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
 
-  app:
+  api:
     image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
     restart: always
     networks:
@@ -72,7 +72,6 @@ services:
     env_file:
       - .env
     environment:
-      - DOMAIN=${DOMAIN}
       - ENVIRONMENT=${ENVIRONMENT}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY?Variable not set}

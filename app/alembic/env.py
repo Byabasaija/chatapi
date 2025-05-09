@@ -17,8 +17,8 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
-from sqlmodel import SQLModel
-from app.models import APIClient
+
+from app.models import SQLModel  # noqa
 from app.core.config import settings # noqa
 
 target_metadata = SQLModel.metadata

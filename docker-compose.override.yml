@@ -9,11 +9,13 @@ services:
       - "8080:8080"
     restart: "no"
 
-  app:
+  api:
+    restart: "no"
     ports:
       - "8000:8000"
     build:
       context: ./
+    # command: sleep infinity  # Infinite loop to keep container alive doing nothing
     command:
       - fastapi
       - run
@@ -25,13 +27,14 @@ services:
           action: sync
           target: /app
           ignore:
-            - ./venv
+            - ./backend/.venv
             - .venv
         - path: ./pyproject.toml
           action: rebuild
+    # TODO: remove once coverage is done locally
     volumes:
       - ./htmlcov:/app/htmlcov
-    restart: "no"
+
 
 networks:
   default:

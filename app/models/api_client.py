@@ -1,12 +1,18 @@
 from datetime import datetime
+from enum import Enum
 from uuid import UUID, uuid4
 
 from sqlmodel import Field, SQLModel
 
 
+class EncryptionMode(str, Enum):
+    E2EE = "e2ee"
+    NONE = "none"
+
+
 class APIClientBase(SQLModel):
     name: str | None = None
-    encryption_mode: str = Field(default=None)
+    encryption_mode: EncryptionMode = Field(default=EncryptionMode.NONE)
 
 
 class APIClient(APIClientBase, table=True):

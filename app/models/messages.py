@@ -3,6 +3,8 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import model_validator
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, SQLModel
 
 
@@ -44,7 +46,7 @@ class Message(SQLModel, table=True):
     content: str | None = None
     content_type: ContentType | None = ContentType.text
 
-    metadata: dict = {}
+    custom_metadata: dict | None = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     delivered: bool = False
     delivered_at: datetime | None = None
