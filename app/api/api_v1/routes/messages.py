@@ -37,7 +37,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Extract user_id and connect via manager
         user_id = initial_message["user_id"]
-        sockets.manager.connect[user_id] = websocket
+        await sockets.manager.connect(websocket, user_id)
 
         # Send connection confirmation
         await websocket.send_json({"msg": "connected", "user_id": user_id})

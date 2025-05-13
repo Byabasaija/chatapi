@@ -1,7 +1,6 @@
 import asyncio
 
 from fastapi import WebSocket
-from starlette.websockets import WebSocketDisconnect
 
 
 class ConnectionManager:
@@ -33,20 +32,12 @@ class ConnectionManager:
 
     # Keep the WebSocket alive.
     async def ping(self, websocket: WebSocket):
-        await websocket.send_text("ping")
-
-    # Trigger to recieve message from the WebSocket
-    async def reply(self, websocket: WebSocket):
-        await websocket.send_text("Reply Pong")
+        await websocket.send_json({"msg": "ping"})
 
     # Listening to the Websocket and sending message.
     async def pong(self, websocket: WebSocket):
-        try:
-            await self.reply(websocket)
-            pong = await asyncio.wait_for(websocket.receive_text(), timeout=5)
-            return pong == "pong"
-        except (asyncio.exceptions.TimeoutError, WebSocketDisconnect):
-            return False
+        pong = await asyncio.wait_for(websocket.receive_text(), timeout=5)
+        return pong == "pong"
 
     # Send a retry message to a user WebSocket
     # async def personal_notification(self, message: dict):
