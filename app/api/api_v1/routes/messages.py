@@ -4,7 +4,7 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 # Import the ConnectionManager
-from app import sockets
+from app.sockets import manager
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Extract user_id and connect via manager
         user_id = initial_message["user_id"]
-        await sockets.manager.connect(websocket, user_id)
+        await manager.connect(websocket, user_id)
 
         # Send connection confirmation
         await websocket.send_json({"msg": "connected", "user_id": user_id})
@@ -68,9 +68,9 @@ async def websocket_endpoint(websocket: WebSocket):
             except asyncio.TimeoutError:
                 # Send a ping to check connection
                 try:
-                    await sockets.manager.ping(websocket)
+                    await manager.ping(websocket)
                     # Wait for pong
-                    pong_result = await sockets.manager.pong(websocket)
+                    pong_result = await manager.pong(websocket)
                     if not pong_result:
                         break
                 except Exception:
@@ -83,4 +83,4 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         # Ensure disconnection is handled
         if user_id is not None:
-            sockets.manager.disconnect(user_id)
+            manager.disconnect(user_id)

@@ -31,8 +31,7 @@ services:
     environment:
       - ADMINER_DESIGN=pepa-linha-dark
     ports:
-      - "8080:8080"  # Exposing Adminer on port 8080
-    # Removed Traefik labels
+      - "8080:8080"
 
   prestart:
     image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
@@ -91,6 +90,32 @@ services:
 
     build:
       context: ./
+
+  celeryworker:
+    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
+    networks:
+      - default
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "3"
+    env_file:
+      - .env
+    build:
+      context: ./
+      dockerfile: celeryworker.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
+  queue:
+    image: rabbitmq:3.11-management
+    networks:
+      - default
+    restart: unless-stopped
+    volumes:
+      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
 
 volumes:
   app-db-data:
