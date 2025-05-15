@@ -39,32 +39,5 @@ class ConnectionManager:
         pong = await asyncio.wait_for(websocket.receive_text(), timeout=5)
         return pong == "pong"
 
-    # Send a retry message to a user WebSocket
-    # async def personal_notification(self, message: dict):
-    #     connection_check = self.get_ws(message["message"]["user_id"])
-    #     if connection_check:
-    #         connection_check: WebSocket
-    #         await connection_check.send_json(message)
-    #         await asyncio.sleep(2)
-    #         return True
-    #     else:
-    #         del self.active_connections[message["message"]["user_id"]]
-    #         return False
-
-    # def sanitize_data_request(self, data: any) -> any:
-    #     # Putting here for want of a better place
-    #     if isinstance(data, (list, tuple, set)):
-    #         return type(data)(
-    #             self.sanitize_data_request(x) for x in data if x or isinstance(x, bool)
-    #         )
-    #     elif isinstance(data, dict):
-    #         return type(data)(
-    #             (self.sanitize_data_request(k), self.sanitize_data_request(v))
-    #             for k, v in data.items()
-    #             if k and v or isinstance(v, bool)
-    #         )
-    #     else:
-    #         return data
-
 
 manager = ConnectionManager()
