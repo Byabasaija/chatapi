@@ -4,40 +4,57 @@ from fastapi import WebSocket
 
 
 class ConnectionManager:
-    # INITIALIZE THE LIST AND CONNECTION
     def __init__(self):
         self.active_connections: dict[int, WebSocket] = {}
+        self.message_queues: dict[int, asyncio.Queue] = {}
+        self.receive_tasks: dict[int, asyncio.Task] = {}
 
-    # CONNECT TO WEBSOCKET AND APPEND TO THE LIST
     async def connect(self, websocket: WebSocket, user_id: int):
         self.active_connections[user_id] = websocket
+        self.message_queues[user_id] = asyncio.Queue()
+        self.receive_tasks[user_id] = asyncio.create_task(
+            self._receive_loop(user_id, websocket)
+        )
 
-    # PURGE WEBSOCKET LIST STORE
     def disconnect(self, user_id: int):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
+        if user_id in self.receive_tasks:
+            self.receive_tasks[user_id].cancel()
+        self.active_connections.pop(user_id, None)
+        self.message_queues.pop(user_id, None)
+        self.receive_tasks.pop(user_id, None)
 
-    # Fetch WebSocket and return them if it exists.
     def get_ws(self, user_id: int) -> WebSocket | None:
         return self.active_connections.get(user_id)
 
-    # SEND MESSAGE AFTER WEBSOCKET IS ALIVE
     async def send_message(self, message: dict):
         user_ws = self.get_ws(message["user_id"])
         if user_ws is not None:
-            websocket: WebSocket = user_ws
-            await websocket.send_json(message)
+            await user_ws.send_json(message)
             return True
         return False
 
-    # Keep the WebSocket alive.
-    async def ping(self, websocket: WebSocket):
-        await websocket.send_json({"msg": "ping"})
+    async def _receive_loop(self, user_id: int, websocket: WebSocket):
+        try:
+            while True:
+                msg = await websocket.receive_text()
+                await self.message_queues[user_id].put(msg)
+        except Exception:
+            # When disconnected or errored
+            self.disconnect(user_id)
 
-    # Listening to the Websocket and sending message.
-    async def pong(self, websocket: WebSocket):
-        pong = await asyncio.wait_for(websocket.receive_text(), timeout=5)
-        return pong == "pong"
+    async def get_message(self, user_id: int, timeout: float = 30.0) -> str | None:
+        queue = self.message_queues.get(user_id)
+        if queue:
+            try:
+                return await asyncio.wait_for(queue.get(), timeout=timeout)
+            except asyncio.TimeoutError:
+                return None
+        return None
+
+    async def ping(self, user_id: int):
+        websocket = self.get_ws(user_id)
+        if websocket:
+            await websocket.send_json({"msg": "ping"})
 
 
 manager = ConnectionManager()
