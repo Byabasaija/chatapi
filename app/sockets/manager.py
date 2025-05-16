@@ -27,9 +27,10 @@ class ConnectionManager:
         return self.active_connections.get(user_id)
 
     async def send_message(self, message: dict):
-        user_ws = self.get_ws(message["user_id"])
-        if user_ws is not None:
-            await user_ws.send_json(message)
+        recipient_id = message["data"]["recipient_id"]
+        websocket = self.get_ws(recipient_id)
+        if websocket:
+            await websocket.send_json(message)
             return True
         return False
 

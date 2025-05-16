@@ -1,15 +1,17 @@
 import json
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from sqlmodel import Session
 
-# Import the ConnectionManager
+from app.api.deps import get_db
+from app.services.message import handle_incoming_message
 from app.sockets.manager import manager
 
 router = APIRouter()
 
 
 @router.websocket("/open")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, session: Session = Depends(get_db)):
     await websocket.accept()
 
     user_id: int | None = None
@@ -56,6 +58,9 @@ async def websocket_endpoint(websocket: WebSocket):
             elif message.get("msg") == "pong":
                 # Ignore or log
                 continue
+            elif message.get("msg") == "message":
+                await handle_incoming_message(session, message)
+
             else:
                 await websocket.send_json({"msg": "echo", "data": message})
 
