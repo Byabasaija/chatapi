@@ -58,7 +58,10 @@ async def websocket_endpoint(websocket: WebSocket, session: Session = Depends(ge
             elif message.get("msg") == "pong":
                 # Ignore or log
                 continue
-            elif message.get("msg") == "message":
+            elif (
+                message.get("msg") == "method"
+                and message.get("method") == "send_message"
+            ):
                 await handle_incoming_message(session, message)
 
             else:

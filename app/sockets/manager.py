@@ -26,11 +26,39 @@ class ConnectionManager:
     def get_ws(self, user_id: int) -> WebSocket | None:
         return self.active_connections.get(user_id)
 
-    async def send_message(self, message: dict):
-        recipient_id = message["data"]["recipient_id"]
+    async def send_message(self, data: dict):
+        recipient_id = data["recipient_id"]
+        sender_id = data["sender_id"]
         websocket = self.get_ws(recipient_id)
+        data = {
+            "content": data.get("content"),
+            "encrypted_payload": data.get("encrypted_payload"),
+            "content_type": data.get("content_type"),
+            "sender_id": data.get("sender_id"),
+        }
+        message = {
+            "msg": "message",
+            "data": data,
+        }
         if websocket:
             await websocket.send_json(message)
+            return True
+        else:
+            self.send_acknowledgment(
+                data,
+                sender_id,
+            )
+            return False
+
+    async def send_acknowledgment(self, data: str, sender_id: int):
+        websocket = self.get_ws(sender_id)
+        if websocket:
+            await websocket.send_json(
+                {
+                    "msg": "delivered",
+                    "data": data,
+                }
+            )
             return True
         return False
 

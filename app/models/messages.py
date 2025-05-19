@@ -7,6 +7,8 @@ from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, SQLModel
 
+from app.core.config import settings
+
 
 class ContentType(str, Enum):
     text = "text"
@@ -34,7 +36,7 @@ class Message(SQLModel, table=True):
     """
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    client_id: str
+    client_id: str = Field(default_factory=settings.CLIENT_KEY)
     sender_id: str
     recipient_id: str
     group_id: str | None = None

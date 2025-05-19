@@ -5,7 +5,6 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     AnyUrl,
     BeforeValidator,
-    EmailStr,
     HttpUrl,
     PostgresDsn,
     computed_field,
@@ -44,8 +43,8 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS] 
-    
+        return [str(origin).rstrip("/") for origin in self.BACKEND_CORS_ORIGINS]
+
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
     POSTGRES_SERVER: str
@@ -53,6 +52,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    CLIENT_KEY: str
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -65,7 +65,6 @@ class Settings(BaseSettings):
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
         )
-
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":
