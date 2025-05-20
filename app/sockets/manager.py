@@ -44,7 +44,7 @@ class ConnectionManager:
             await websocket.send_json(message)
             return True
         else:
-            self.send_acknowledgment(
+            await self.send_acknowledgment(
                 data,
                 sender_id,
             )

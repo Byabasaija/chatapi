@@ -36,7 +36,7 @@ class Message(SQLModel, table=True):
     """
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    client_id: str = Field(default_factory=settings.CLIENT_KEY)
+    client_id: str = Field(default=settings.CLIENT_KEY)
     sender_id: str
     recipient_id: str
     group_id: str | None = None
