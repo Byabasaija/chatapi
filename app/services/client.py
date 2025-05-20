@@ -3,7 +3,7 @@ import secrets
 from sqlmodel import Session
 
 from app.core.security import hash_api_key
-from app.models.api_client import APIClient, APIClientCreate
+from app.models.client import APIClient, APIClientCreate
 
 
 def register_new_client(

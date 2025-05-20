@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app.api.deps import get_db
-from app.models.api_client import APIClientCreate, APIClientReadWithKey
+from app.models.client import APIClientCreate, APIClientReadWithKey
 from app.services.client import register_new_client
 from app.services.message import get_chat_history, get_user_conversations
 

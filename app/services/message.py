@@ -7,7 +7,6 @@ from app.sockets.manager import manager
 async def handle_incoming_message(session: Session, message_data: dict):
     # 1. Persist message
     message = Message(**message_data)
-    print(f"Persisting message: {message}")
     with session:
         session.add(message)
         session.commit()
