@@ -110,7 +110,7 @@ services:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
   queue:
-    image: rabbitmq:3.11-management
+    image: rabbitmq:4.1-management
     networks:
       - default
     restart: unless-stopped
