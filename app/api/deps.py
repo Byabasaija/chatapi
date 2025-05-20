@@ -1,15 +1,21 @@
-from collections.abc import Generator
+# dependencies.py
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import engine
-
-
-def get_db() -> Generator[Session, None, None]:
-    with Session(engine) as session:
-        yield session
+from app.core.db import async_session_maker
 
 
-SessionDep = Annotated[Session, Depends(get_db)]
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+AsyncSessionDep = Annotated[AsyncSession, Depends(get_db)]
