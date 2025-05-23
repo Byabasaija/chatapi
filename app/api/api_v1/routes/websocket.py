@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlmodel import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_async_db
 from app.services.message import handle_incoming_message
 from app.sockets.manager import manager
 
@@ -11,7 +11,9 @@ router = APIRouter()
 
 
 @router.websocket("/open")
-async def websocket_endpoint(websocket: WebSocket, session: Session = Depends(get_db)):
+async def websocket_endpoint(
+    websocket: WebSocket, session: Session = Depends(get_async_db)
+):
     await websocket.accept()
 
     user_id: int | None = None

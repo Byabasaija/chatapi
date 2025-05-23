@@ -5,7 +5,7 @@ from uuid import UUID
 import sqlalchemy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_api_key
+from app.core.security import hash_api_key, verify_api_key
 from app.models.client import Client, EncryptionMode
 from app.schemas.client import ClientCreate, ClientUpdate
 from app.services.base import BaseService
@@ -44,12 +44,16 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
         return client, raw_key
 
     async def get_by_api_key(self, api_key: str) -> Client | None:
-        """Get a client by API key"""
-        hashed_key = hash_api_key(api_key)
-        result = await self.db.execute(
-            sqlalchemy.select(Client).where(Client.api_key == hashed_key)
-        )
-        return result.scalars().first()
+        """Get a client by API key by verifying with stored hash"""
+        # Fetch all clients (or optimize if necessary)
+        result = await self.db.execute(sqlalchemy.select(Client))
+        clients = result.scalars().all()
+
+        for client in clients:
+            if verify_api_key(api_key, client.api_key):
+                return client
+
+        return None
 
     async def verify_api_key(self, api_key: str) -> Client | None:
         """Verify an API key and return the client if valid"""

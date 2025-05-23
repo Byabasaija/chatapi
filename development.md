@@ -158,7 +158,7 @@ Alembic is already configured to import your SQLModel models from ./backend/app/
 
 After changing a model (for example, adding a column), inside the container, create a revision, e.g.:
 ```bash
-alembic revision --autogenerate -m "Add column last_name to model"
+alembic -c ./alembic.ini revision --autogenerate -m "Add column"
 ```
 
 Commit to the git repository the files generated in the alembic directory.

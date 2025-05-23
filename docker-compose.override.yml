@@ -27,7 +27,7 @@ services:
           action: sync
           target: /app
           ignore:
-            - ./backend/.venv
+            - ./app/.venv
             - .venv
         - path: ./pyproject.toml
           action: rebuild
