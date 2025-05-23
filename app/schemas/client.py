@@ -11,18 +11,18 @@ class EncryptionMode(str, Enum):
 
 
 # Base schema with common attributes
-class APIClientBase(BaseModel):
+class ClientBase(BaseModel):
     name: str | None = None
     encryption_mode: EncryptionMode = EncryptionMode.NONE
 
 
 # Schema for creating an API client
-class APIClientCreate(APIClientBase):
+class ClientCreate(ClientBase):
     pass
 
 
 # Schema for reading an API client (response model)
-class APIClientRead(APIClientBase):
+class ClientRead(ClientBase):
     id: UUID
     created_at: datetime
 
@@ -32,14 +32,14 @@ class APIClientRead(APIClientBase):
 
 
 # Schema for reading an API client with the API key (for initial creation response)
-class APIClientReadWithKey(APIClientRead):
+class APIClientReadWithKey(ClientRead):
     api_key: str
 
     model_config = {"from_attributes": True}
 
 
 # Schema for updating an API client (if needed)
-class APIClientUpdate(BaseModel):
+class ClientUpdate(BaseModel):
     name: str | None = None
     encryption_mode: EncryptionMode | None = None
 
