@@ -1,3 +1,4 @@
+# app/schemas/message.py
 from datetime import datetime
 from enum import Enum
 from uuid import UUID
@@ -54,6 +55,18 @@ class MessageRead(MessageBase):
 class MessageUpdate(BaseModel):
     delivered: bool | None = None
     delivered_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+# Additional schema for conversation summary
+class ConversationSummary(BaseModel):
+    """Schema for conversation summary"""
+
+    partner_id: str
+    last_message: MessageRead
+    unread_count: int
 
     class Config:
         from_attributes = True

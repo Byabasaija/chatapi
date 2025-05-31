@@ -1,4 +1,4 @@
-# app/api/routes/clients.py
+# app/api/api_v1/routes/client.py
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status

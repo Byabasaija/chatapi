@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import async_session_maker
 from app.models.client import Client
 from app.services.client import ClientService, get_client_service
+from app.services.message import MessageService, get_message_service
 
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
@@ -44,3 +45,10 @@ async def validate_api_key(api_key: str, client_service: ClientServiceDep) -> Cl
 
 # Use this as a dependency for protected endpoints
 AuthClientDep = Annotated[Client, Depends(validate_api_key)]
+
+
+def get_message_service_dep(db: AsyncSessionDep) -> MessageService:
+    return get_message_service(db)
+
+
+MessageServiceDep = Annotated[MessageService, Depends(get_message_service_dep)]
