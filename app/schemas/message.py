@@ -39,7 +39,7 @@ class MessageCreate(MessageBase):
 
 
 # Schema for reading a message (response model)
-class MessageRead(MessageBase):
+class MessageRead(MessageCreate):
     id: UUID
     client_id: str
     created_at: datetime

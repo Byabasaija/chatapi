@@ -32,7 +32,9 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
 
         # Attempt delivery via WebSocket
         delivered = await self._attempt_delivery(message)
-
+        print(
+            f"Attempting to deliver message {message.id} to {message.recipient_id}: {delivered}"
+        )
         # Update delivery status if successful
         if delivered:
             message.delivered = True
@@ -151,13 +153,30 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
         await self.db.commit()
         return result.rowcount
 
+    def _message_to_dict(self, message: Message) -> dict:
+        """Serialize a Message SQLAlchemy object to a dictionary."""
+        return {
+            "id": str(message.id),
+            "sender_id": message.sender_id,
+            "recipient_id": message.recipient_id,
+            "group_id": message.group_id,
+            "encrypted_payload": message.encrypted_payload,
+            "content": message.content,
+            "content_type": message.content_type,
+            "custom_metadata": message.custom_metadata,
+            "created_at": message.created_at.isoformat()
+            if message.created_at
+            else None,
+            "delivered": message.delivered,
+            "delivered_at": message.delivered_at.isoformat()
+            if message.delivered_at
+            else None,
+        }
+
     async def _attempt_delivery(self, message: Message) -> bool:
         """Attempt to deliver message via WebSocket"""
-        try:
-            return await manager.send_message(message.model_dump(mode="json"))
-        except Exception:
-            # Log error in production
-            return False
+        message_dict = self._message_to_dict(message)
+        return await manager.send_message(message_data=message_dict)
 
     async def _send_delivery_acknowledgment(self, message: Message) -> None:
         """Send delivery acknowledgment to sender"""

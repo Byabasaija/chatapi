@@ -59,14 +59,14 @@ async def send_message(
     """
     Send a message (alternative to WebSocket for REST clients)
     """
-    try:
-        message, delivered = await message_service.send_message(message_data)
-        return message
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send message",
-        )
+    # try:
+    message, delivered = await message_service.send_message(message_data)
+    return message
+    # except Exception:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         detail="Failed to send message",
+    #     )
 
 
 @router.put("/mark-delivered")
