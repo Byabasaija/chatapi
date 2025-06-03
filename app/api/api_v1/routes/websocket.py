@@ -147,7 +147,7 @@ async def _process_message(
         await _handle_send_message(websocket, user_id, message, message_service)
 
     elif msg_type == "get_conversations":
-        await _handle_get_conversations(websocket, user_id)
+        await _handle_get_conversations(websocket, user_id, message_service)
 
     elif msg_type == "get_messages":
         await _handle_get_messages(websocket, user_id, message)
@@ -205,14 +205,18 @@ async def _handle_send_message(
     #     await _send_error(websocket, "Failed to send message")
 
 
-async def _handle_get_conversations(websocket: WebSocket, user_id: str):
+async def _handle_get_conversations(
+    websocket: WebSocket, user_id: str, message_service: MessageService
+):
     """Handle get_conversations request"""
     try:
-        # TODO: Implement conversation fetching logic
+        conversations = await message_service.get_user_conversations(user_id)
+        if not conversations:
+            conversations = []
         await websocket.send_json(
             {
                 "msg": "conversations",
-                "conversations": [],  # Placeholder
+                "conversations": conversations,
             }
         )
     except Exception as e:

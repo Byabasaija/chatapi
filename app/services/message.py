@@ -120,8 +120,8 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             if partner_id not in conversations:
                 conversations[partner_id] = {
                     "partner_id": partner_id,
-                    "last_message": message,
-                    "unread_count": 0,  # You can implement unread logic based on your Message model
+                    "last_message": self._message_to_dict(message),
+                    "unread_count": 0,
                 }
 
         return list(conversations.values())

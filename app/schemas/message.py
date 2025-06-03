@@ -56,8 +56,9 @@ class MessageUpdate(BaseModel):
     delivered: bool | None = None
     delivered_at: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True  # Allows conversion from SQLAlchemy model
+    }
 
 
 # Additional schema for conversation summary
@@ -68,5 +69,4 @@ class ConversationSummary(BaseModel):
     last_message: MessageRead
     unread_count: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
