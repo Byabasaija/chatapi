@@ -32,11 +32,10 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
 
         # Attempt delivery via WebSocket
         delivered = await self._attempt_delivery(message)
-        print(
-            f"Attempting to deliver message {message.id} to {message.recipient_id}: {delivered}"
-        )
+
         # Update delivery status if successful
         if delivered:
+            message.custom_metadata["delivered"] = True
             message.delivered = True
             message.delivered_at = datetime.utcnow()
             await self.db.commit()
@@ -49,7 +48,7 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
 
     async def get_chat_history(
         self, sender_id: str, recipient_id: str, limit: int = 100, offset: int = 0
-    ) -> list[Message]:
+    ) -> list[dict]:
         """
         Get chat history between two users
 
@@ -82,7 +81,8 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
         )
 
         result = await self.db.execute(query)
-        return result.scalars().all()
+        messages = result.scalars().all()
+        return [self._message_to_dict(msg) for msg in messages]
 
     async def get_user_conversations(self, user_id: str) -> list[dict]:
         """

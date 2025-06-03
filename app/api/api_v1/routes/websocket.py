@@ -150,7 +150,7 @@ async def _process_message(
         await _handle_get_conversations(websocket, user_id, message_service)
 
     elif msg_type == "get_messages":
-        await _handle_get_messages(websocket, user_id, message)
+        await _handle_get_messages(websocket, user_id, message, message_service)
 
     else:
         # Echo unknown messages (for debugging/testing)
@@ -225,19 +225,26 @@ async def _handle_get_conversations(
 
 
 async def _handle_get_messages(
-    websocket: WebSocket, user_id: str, message: dict[str, Any]
+    websocket: WebSocket,
+    user_id: str,
+    message: dict[str, Any],
+    message_service: MessageService,
 ):
     """Handle get_messages request"""
     try:
         recipient_id = message.get("recipient_id")
-        message.get("limit", 50)
+        limit = message.get("limit", 50)
 
-        # TODO: Implement message fetching logic
+        messages = await message_service.get_chat_history(
+            sender_id=user_id, recipient_id=recipient_id, limit=limit
+        )
+        if not messages:
+            messages = []
         await websocket.send_json(
             {
                 "msg": "messages",
-                "recipient_id": recipient_id,
-                "messages": [],  # Placeholder
+                "user_id": user_id,
+                "messages": messages,
             }
         )
     except Exception as e:
