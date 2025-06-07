@@ -3,12 +3,12 @@
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import MessageServiceDep
-from app.schemas.message import ConversationSummary, MessageCreate, MessageRead
+from app.schemas.message import MessageCreate, MessageRead
 
 router = APIRouter()
 
 
-@router.get("/conversations", response_model=list[ConversationSummary])
+@router.get("/conversations")
 async def get_user_conversations(
     user_id: str,
     message_service: MessageServiceDep,
@@ -26,7 +26,7 @@ async def get_user_conversations(
         )
 
 
-@router.get("/history", response_model=list[MessageRead])
+@router.get("/history")
 async def get_chat_history(
     sender_id: str,
     recipient_id: str,
