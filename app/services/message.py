@@ -159,6 +159,8 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             "id": str(message.id),
             "sender_id": message.sender_id,
             "recipient_id": message.recipient_id,
+            "sender_name": message.sender_name,
+            "recipient_name": message.recipient_name,
             "group_id": message.group_id,
             "encrypted_payload": message.encrypted_payload,
             "content": message.content,

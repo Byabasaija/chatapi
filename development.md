@@ -151,14 +151,14 @@ Make sure you create a "revision" of your models and that you "upgrade" your dat
 Start an interactive session in the app container:
 
 ```bash
-docker compose exec app bash
+docker compose exec api bash
 ```
 
 Alembic is already configured to import your SQLModel models from ./backend/app/models.py.
 
 After changing a model (for example, adding a column), inside the container, create a revision, e.g.:
 ```bash
-alembic -c ./alembic.ini revision --autogenerate -m "Add column"
+alembic revision --autogenerate -m "Add column"
 ```
 
 Commit to the git repository the files generated in the alembic directory.

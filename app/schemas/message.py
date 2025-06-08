@@ -17,6 +17,8 @@ class ContentType(str, Enum):
 class MessageBase(BaseModel):
     sender_id: str
     recipient_id: str
+    sender_name: str | None = None
+    recipient_name: str | None = None
     group_id: str | None = None
     content_type: ContentType | None = ContentType.text
     custom_metadata: dict | None = {}

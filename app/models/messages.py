@@ -30,6 +30,8 @@ class Message(Base):
     client_id = Column(String, default=settings.CLIENT_KEY, nullable=False)
     sender_id = Column(String, nullable=False)
     recipient_id = Column(String, nullable=False)
+    sender_name = Column(String, nullable=True)
+    recipient_name = Column(String, nullable=True)
     group_id = Column(String, nullable=True)
 
     # For E2EE mode
