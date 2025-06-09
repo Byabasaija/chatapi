@@ -120,6 +120,11 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             if partner_id not in conversations:
                 conversations[partner_id] = {
                     "partner_id": partner_id,
+                    "partner_name": (
+                        message.recipient_name
+                        if message.sender_id == user_id
+                        else message.sender_name
+                    ),
                     "last_message": self._message_to_dict(message),
                     "unread_count": 0,
                 }
@@ -189,6 +194,8 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
                 "content_type": message.content_type,
                 "sender_id": message.sender_id,
                 "recipient_id": message.recipient_id,
+                "sender_name": message.sender_name,
+                "recipient_name": message.recipient_name,
                 "delivered": message.delivered,
                 "delivered_at": message.delivered_at.isoformat()
                 if message.delivered_at

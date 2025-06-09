@@ -22,6 +22,8 @@ dependencies = [
     "sentry-sdk[fastapi]<2.0.0,>=1.40.6",
     "pyjwt<3.0.0,>=2.8.0",
     "asyncpg >= 0.30.0",
+    "python-socketio[asyncio]>=5.11.0,<6.0.0",
+    "python-socketio[fastapi]>=5.11.0,<6.0.0",
 ]
 
 [tool.uv]

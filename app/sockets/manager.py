@@ -125,6 +125,8 @@ class ConnectionManager:
             "content_type": message_data.get("content_type"),
             "sender_id": message_data.get("sender_id"),
             "recipient_id": message_data.get("recipient_id"),
+            "sender_name": message_data.get("sender_name"),
+            "recipient_name": message_data.get("recipient_name"),
             "timestamp": message_data.get("created_at"),  # Already a string
             "custom_metadata": message_data.get("custom_metadata"),
         }
