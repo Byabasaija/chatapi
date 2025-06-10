@@ -1,4 +1,4 @@
-# dependencies.py
+# deps.py
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
