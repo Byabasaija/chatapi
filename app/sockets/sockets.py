@@ -95,74 +95,24 @@ async def connect(
 
 
 @sio_server.event
-async def send_message(sid: str, data: dict):
-    """Handle message sending"""
-    user_id = session_users.get(sid)
+@inject_services(services=["message_service"])
+async def get_conversations(
+    sid: str,
+    message_service: MessageService = None,
+):
+    user_info = session_users.get(sid)
+    if user_info:
+        user_id = user_info.get("user_id")
+
     if not user_id:
         await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
         return
 
     try:
-        # Get database session
-        async with get_async_db() as db:
-            message_service = MessageService(db)
-
-            # Prepare message data
-            message_data = {
-                "sender_id": user_id,  # Use authenticated user ID
-                "recipient_id": data.get("recipient_id"),
-                "sender_name": data.get("sender_name"),
-                "recipient_name": data.get("recipient_name"),
-                "content": data.get("content"),
-                "encrypted_payload": data.get("encrypted_payload"),
-                "content_type": data.get("content_type", "text"),
-                "custom_metadata": data.get("custom_metadata", {}),
-            }
-
-            # Validate and create message
-            message_create = MessageCreate(**message_data)
-
-            # Send message (save to DB and attempt delivery)
-            saved_message, delivered = await message_service.send_message(
-                message_create
-            )
-
-            # Send confirmation to sender
-            await sio_server.emit(
-                "message_sent",
-                {
-                    "message_id": str(saved_message.id),
-                    "delivered": delivered,
-                    "created_at": saved_message.created_at.isoformat(),
-                },
-                room=sid,
-            )
-
-            logger.info(
-                f"Message sent from {user_id} to {data.get('recipient_id')}, delivered: {delivered}"
-            )
-
-    except Exception as e:
-        logger.error(f"Error sending message from user {user_id}: {e}")
-        await sio_server.emit("error", {"message": "Failed to send message"}, room=sid)
-
-
-@sio_server.event
-async def get_conversations(sid: str):
-    """Handle get conversations request"""
-    user_id = session_users.get(sid)
-    if not user_id:
-        await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
-        return
-
-    try:
-        async with get_async_db() as db:
-            message_service = MessageService(db)
-            conversations = await message_service.get_user_conversations(user_id)
-
-            await sio_server.emit(
-                "conversations", {"conversations": conversations or []}, room=sid
-            )
+        conversations = await message_service.get_user_conversations(user_id)
+        await sio_server.emit(
+            "conversations", {"conversations": conversations or []}, room=sid
+        )
 
     except Exception as e:
         logger.error(f"Error getting conversations for user {user_id}: {e}")
@@ -172,9 +122,68 @@ async def get_conversations(sid: str):
 
 
 @sio_server.event
-async def get_messages(sid: str, data: dict):
+@inject_services(services=["message_service"])
+async def send_message(
+    sid: str,
+    data: dict,
+    message_service: MessageService = None,
+):
+    """Handle message sending"""
+    user_info = session_users.get(sid)
+    if user_info:
+        user_id = user_info.get("user_id")
+
+    if not user_id:
+        await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
+        return
+
+    try:
+        # Prepare message data (force sender_id from session context)
+        message_data = {
+            "sender_id": user_id,
+            "recipient_id": data.get("recipient_id"),
+            "sender_name": data.get("sender_name"),
+            "recipient_name": data.get("recipient_name"),
+            "content": data.get("content"),
+            "encrypted_payload": data.get("encrypted_payload"),
+            "content_type": data.get("content_type", "text"),
+            "custom_metadata": data.get("custom_metadata", {}),
+        }
+
+        # Validate and create message
+        message_create = MessageCreate(**message_data)
+
+        # Save + attempt delivery
+        saved_message, delivered = await message_service.send_message(message_create)
+
+        # Acknowledge to sender
+        await sio_server.emit(
+            "message_sent",
+            {
+                "message_id": str(saved_message.id),
+                "delivered": delivered,
+                "created_at": saved_message.created_at.isoformat(),
+            },
+            room=sid,
+        )
+
+        logger.info(
+            f"Message sent from {user_id} to {data.get('recipient_id')}, delivered: {delivered}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error sending message from user {user_id}: {e}")
+        await sio_server.emit("error", {"message": "Failed to send message"}, room=sid)
+
+
+@sio_server.event
+@inject_services(services=["message_service"])
+async def get_messages(sid: str, data: dict, message_service: MessageService = None):
     """Handle get messages request"""
-    user_id = session_users.get(sid)
+    user_info = session_users.get(sid)
+    if user_info:
+        user_id = user_info.get("user_id")
+
     if not user_id:
         await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
         return
@@ -189,21 +198,19 @@ async def get_messages(sid: str, data: dict):
             )
             return
 
-        async with get_async_db() as db:
-            message_service = MessageService(db)
-            messages = await message_service.get_chat_history(
-                sender_id=user_id, recipient_id=recipient_id, limit=limit
-            )
+        messages = await message_service.get_chat_history(
+            sender_id=user_id, recipient_id=recipient_id, limit=limit
+        )
 
-            await sio_server.emit(
-                "messages",
-                {
-                    "user_id": user_id,
-                    "recipient_id": recipient_id,
-                    "messages": messages or [],
-                },
-                room=sid,
-            )
+        await sio_server.emit(
+            "messages",
+            {
+                "user_id": user_id,
+                "recipient_id": recipient_id,
+                "messages": messages or [],
+            },
+            room=sid,
+        )
 
     except Exception as e:
         logger.error(f"Error getting messages for user {user_id}: {e}")
