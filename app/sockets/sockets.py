@@ -1,10 +1,12 @@
-# app/sockets/socketio_server.py
+# app/sockets/sockets.py
 import logging
 
 import socketio
 
-from app.api.deps import get_async_db, get_client_service
+from app.api.deps import get_async_db
+from app.api.sockets_deps import inject_services
 from app.schemas.message import MessageCreate
+from app.services.client import ClientService
 from app.services.message import MessageService
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,13 @@ session_users: dict[str, str] = {}
 
 
 @sio_server.event
-async def connect(sid: str, environ: dict, auth: dict = None):
+@inject_services(services=["client_service"])
+async def connect(
+    sid: str,
+    environ: dict,
+    auth: dict | None = None,
+    client_service: ClientService = None,
+):
     """Handle client connection with API key validation"""
     logger.info(f"Client {sid} attempting to connect {environ}")
 
@@ -38,19 +46,12 @@ async def connect(sid: str, environ: dict, auth: dict = None):
         return False
 
     user_id = auth["user_id"]
-    api_key = auth["api_key"]
 
     # try:
-    # Get database session and validate API key
-    async with get_async_db() as db:
-        print(f"Validating API key for user {user_id} with session {sid}")
-        client_service = get_client_service(db)
-        client = await client_service.verify_api_key(api_key)
-
-        if not client:
-            logger.warning(f"Client {sid} rejected: invalid api_key")
-            await sio_server.disconnect(sid)
-            return False
+    client = await client_service.verify_api_key(auth["api_key"])
+    if not client:
+        await sio_server.disconnect(sid)
+        return False
 
     # Handle existing connection from same user within same client
     connection_key = f"{client.id}:{user_id}"  # Scope by client + user

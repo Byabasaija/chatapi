@@ -1,5 +1,6 @@
 # deps.py
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -11,7 +12,8 @@ from app.services.client import ClientService, get_client_service
 from app.services.message import MessageService, get_message_service
 
 
-async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+@asynccontextmanager
+async def get_db_session_context():
     async with async_session_maker() as session:
         try:
             yield session
@@ -19,6 +21,13 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+        finally:
+            await session.close()
+
+
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    async with get_db_session_context() as session:
+        yield session
 
 
 AsyncSessionDep = Annotated[AsyncSession, Depends(get_async_db)]
