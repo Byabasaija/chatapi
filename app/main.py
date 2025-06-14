@@ -3,7 +3,6 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.api_v1.rest_api import rest_api_router
-from app.api.api_v1.web_sockets import web_sockets_router
 from app.core.config import settings
 from app.sockets.sockets import sio_app
 
@@ -29,6 +28,4 @@ if settings.all_cors_origins:
     )
 
 app.include_router(rest_api_router, prefix=settings.API_V1_STR)
-app.include_router(web_sockets_router)
-
 app.mount("/", sio_app)

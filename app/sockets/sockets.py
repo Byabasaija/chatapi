@@ -1,4 +1,3 @@
-# app/sockets/sockets.py
 import logging
 
 import socketio
@@ -30,12 +29,7 @@ session_users: dict[str, str] = {}
 
 @sio_server.event
 @inject_services(services=["client_service"])
-async def connect(
-    sid: str,
-    environ: dict,
-    auth: dict | None = None,
-    client_service: ClientService = None,
-):
+async def connect(sid: str, environ: dict, auth: dict, client_service: ClientService):
     """Handle client connection with API key validation"""
     logger.info(f"Client {sid} attempting to connect {environ}")
 

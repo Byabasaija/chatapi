@@ -14,3 +14,6 @@ htmlcov
 *.pyo
 *.pyd
 *.log
+.DS_Store
+.ruff_cache
+.qodo
