@@ -7,44 +7,79 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.messages import Message
 from app.schemas.message import MessageCreate, MessageUpdate
 from app.services.base import BaseService
-from app.sockets.manager import manager
 
 
 class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
     def __init__(self, db: AsyncSession):
         super().__init__(model=Message, db=db)
 
-    async def send_message(self, message_data: MessageCreate) -> tuple[Message, bool]:
+    async def save_message(self, message_data: MessageCreate) -> Message:
         """
-        Send a message and handle delivery
+        Save a message to the database
 
         Args:
             message_data: Message creation data
 
         Returns:
-            Tuple containing the saved message and delivery status
+            The saved message object
         """
-        # Create and persist message
         message = Message(**message_data.model_dump())
         self.db.add(message)
         await self.db.commit()
         await self.db.refresh(message)
+        return message
 
-        # Attempt delivery via WebSocket
-        delivered = await self._attempt_delivery(message)
+    async def mark_message_delivered(self, message_id: str) -> bool:
+        """
+        Mark a message as delivered
 
-        # Update delivery status if successful
-        if delivered:
-            message.custom_metadata["delivered"] = True
-            message.delivered = True
-            message.delivered_at = datetime.utcnow()
+        Args:
+            message_id: ID of the message to mark as delivered
+
+        Returns:
+            True if message was updated, False otherwise
+        """
+        try:
+            query = (
+                sqlalchemy.update(Message)
+                .where(Message.id == message_id)
+                .values(
+                    delivered=True,
+                    delivered_at=datetime.utcnow(),
+                )
+            )
+
+            result = await self.db.execute(query)
             await self.db.commit()
-            await self.db.refresh(message)
+            return result.rowcount > 0
 
-            # Send delivery acknowledgment
-            await self._send_delivery_acknowledgment(message)
+        except Exception as e:
+            await self.db.rollback()
+            raise e
 
-        return message, delivered
+    async def get_undelivered_messages(self, user_id: str) -> list[dict]:
+        """
+        Get undelivered messages for a user
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            List of undelivered messages
+        """
+        query = (
+            sqlalchemy.select(Message)
+            .where(
+                sqlalchemy.and_(
+                    Message.recipient_id == user_id, Message.delivered is False
+                )
+            )
+            .order_by(Message.created_at.asc())
+        )
+
+        result = await self.db.execute(query)
+        messages = result.scalars().all()
+        return [self._message_to_dict(msg) for msg in messages]
 
     async def get_chat_history(
         self, sender_id: str, recipient_id: str, limit: int = 100, offset: int = 0
@@ -179,37 +214,6 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             if message.delivered_at
             else None,
         }
-
-    async def _attempt_delivery(self, message: Message) -> bool:
-        """Attempt to deliver message via WebSocket"""
-        message_dict = self._message_to_dict(message)
-        return await manager.send_message(message_data=message_dict)
-
-    async def _send_delivery_acknowledgment(self, message: Message) -> None:
-        """Send delivery acknowledgment to sender"""
-        try:
-            ack_data = {
-                "content": message.content,
-                "encrypted_payload": message.encrypted_payload,
-                "content_type": message.content_type,
-                "sender_id": message.sender_id,
-                "recipient_id": message.recipient_id,
-                "sender_name": message.sender_name,
-                "recipient_name": message.recipient_name,
-                "delivered": message.delivered,
-                "delivered_at": message.delivered_at.isoformat()
-                if message.delivered_at
-                else None,
-                "created_at": message.created_at.isoformat()
-                if message.created_at
-                else None,
-            }
-            await manager.send_acknowledgment(
-                data=ack_data, sender_id=message.sender_id
-            )
-        except Exception:
-            # Log error in production
-            pass
 
 
 def get_message_service(db: AsyncSession) -> MessageService:

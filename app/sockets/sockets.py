@@ -1,3 +1,4 @@
+# app/sockets/sockets.py
 import logging
 
 import socketio
@@ -20,11 +21,11 @@ sio_server = socketio.AsyncServer(
 
 sio_app = socketio.ASGIApp(socketio_server=sio_server, socketio_path="sockets")
 
-# Store active connections: {user_id: session_id}
+# Store active connections: {connection_key: session_id}
 active_connections: dict[str, str] = {}
 
-# Store session user mapping: {session_id: user_id}
-session_users: dict[str, str] = {}
+# Store session user mapping: {session_id: user_info}
+session_users: dict[str, dict] = {}
 
 
 @sio_server.event
@@ -41,51 +42,67 @@ async def connect(sid: str, environ: dict, auth: dict, client_service: ClientSer
 
     user_id = auth["user_id"]
 
-    # try:
-    client = await client_service.verify_api_key(auth["api_key"])
-    if not client:
+    try:
+        client = await client_service.verify_api_key(auth["api_key"])
+        if not client:
+            await sio_server.disconnect(sid)
+            return False
+
+        # Handle existing connection from same user within same client
+        connection_key = f"{client.id}:{user_id}"  # Scope by client + user
+        if connection_key in active_connections:
+            old_sid = active_connections[connection_key]
+            logger.info(
+                f"User {user_id} from client {client.id} reconnecting, disconnecting old session {old_sid}"
+            )
+            await sio_server.disconnect(old_sid)
+
+            # Clean up old session
+            session_users.pop(old_sid, None)
+
+        # Store connection mappings with client context
+        active_connections[connection_key] = sid
+        session_users[sid] = {
+            "user_id": user_id,
+            "client_id": str(client.id),
+            "connection_key": connection_key,
+        }
+
+        logger.info(
+            f"User {user_id} from client {client.id} connected with session {sid}"
+        )
+
+        # Send connection confirmation
+        await sio_server.emit(
+            "connected", {"user_id": user_id, "client_id": str(client.id)}, room=sid
+        )
+
+        # Deliver any undelivered messages for this user within this client
+        await deliver_undelivered_messages(user_id, str(client.id), sid)
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Error during connection for user {user_id}: {e}")
         await sio_server.disconnect(sid)
         return False
 
-    # Handle existing connection from same user within same client
-    connection_key = f"{client.id}:{user_id}"  # Scope by client + user
-    if connection_key in active_connections:
-        old_sid = active_connections[connection_key]
-        logger.info(
-            f"User {user_id} from client {client.id} reconnecting, disconnecting old session {old_sid}"
-        )
-        await sio_server.disconnect(old_sid)
 
-        # Remove old session from active connections
-        active_connections.pop(user_id, None)
+@sio_server.event
+async def disconnect(sid: str):
+    """Handle client disconnection"""
+    user_info = session_users.get(sid)
+    if user_info:
+        connection_key = user_info.get("connection_key")
+        user_id = user_info.get("user_id")
+        client_id = user_info.get("client_id")
 
-        # Clean up old session
-        session_users.pop(old_sid, None)
+        # Clean up mappings
+        if connection_key:
+            active_connections.pop(connection_key, None)
+        session_users.pop(sid, None)
 
-    # Store connection mappings with client context
-    active_connections[connection_key] = sid
-    session_users[sid] = {
-        "user_id": user_id,
-        "client_id": str(client.id),
-        "connection_key": connection_key,
-    }
-
-    logger.info(f"User {user_id} from client {client.id} connected with session {sid}")
-
-    # Send connection confirmation
-    await sio_server.emit(
-        "connected", {"user_id": user_id, "client_id": str(client.id)}, room=sid
-    )
-
-    # Deliver any undelivered messages for this user within this client
-    # await deliver_undelivered_messages(user_id, str(client.id), sid)
-
-    return True
-
-    # except Exception as e:
-    #     logger.error(f"Error during connection for user {user_id}: {e}")
-    #     await sio_server.disconnect(sid)
-    #     return False
+        logger.info(f"User {user_id} from client {client_id} disconnected")
 
 
 @sio_server.event
@@ -95,12 +112,11 @@ async def get_conversations(
     message_service: MessageService = None,
 ):
     user_info = session_users.get(sid)
-    if user_info:
-        user_id = user_info.get("user_id")
-
-    if not user_id:
+    if not user_info:
         await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
         return
+
+    user_id = user_info.get("user_id")
 
     try:
         conversations = await message_service.get_user_conversations(user_id)
@@ -124,12 +140,11 @@ async def send_message(
 ):
     """Handle message sending"""
     user_info = session_users.get(sid)
-    if user_info:
-        user_id = user_info.get("user_id")
-
-    if not user_id:
+    if not user_info:
         await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
         return
+
+    user_id = user_info.get("user_id")
 
     try:
         # Prepare message data (force sender_id from session context)
@@ -147,8 +162,15 @@ async def send_message(
         # Validate and create message
         message_create = MessageCreate(**message_data)
 
-        # Save + attempt delivery
-        saved_message, delivered = await message_service.send_message(message_create)
+        # Save message to database
+        saved_message = await message_service.save_message(message_create)
+
+        # Attempt delivery via Socket.IO
+        delivered = await deliver_message(saved_message)
+
+        # Update delivery status if successful
+        if delivered:
+            await message_service.mark_message_delivered(saved_message.id)
 
         # Acknowledge to sender
         await sio_server.emit(
@@ -175,12 +197,11 @@ async def send_message(
 async def get_messages(sid: str, data: dict, message_service: MessageService = None):
     """Handle get messages request"""
     user_info = session_users.get(sid)
-    if user_info:
-        user_id = user_info.get("user_id")
-
-    if not user_id:
+    if not user_info:
         await sio_server.emit("error", {"message": "Not authenticated"}, room=sid)
         return
+
+    user_id = user_info.get("user_id")
 
     try:
         recipient_id = data.get("recipient_id")
@@ -215,6 +236,56 @@ async def get_messages(sid: str, data: dict, message_service: MessageService = N
 async def ping(sid: str):
     """Handle ping for connection keepalive"""
     await sio_server.emit("pong", {}, room=sid)
+
+
+async def deliver_message(message) -> bool:
+    """
+    Deliver message to recipient via Socket.IO
+
+    Args:
+        message: The message object to deliver
+
+    Returns:
+        True if message was delivered, False otherwise
+    """
+    recipient_id = message.recipient_id
+
+    # Find recipient's connection key - we need to check all active connections
+    # since we don't know which client they're connected through
+    recipient_sid = None
+    for sid in active_connections.items():
+        user_info = session_users.get(sid)
+        if user_info and user_info.get("user_id") == recipient_id:
+            recipient_sid = sid
+            break
+
+    if not recipient_sid:
+        logger.info(f"Recipient {recipient_id} not connected")
+        return False
+
+    try:
+        # Format message for recipient
+        formatted_message = {
+            "message_id": str(message.id),
+            "content": message.content,
+            "encrypted_payload": message.encrypted_payload,
+            "content_type": message.content_type,
+            "sender_id": message.sender_id,
+            "recipient_id": message.recipient_id,
+            "sender_name": message.sender_name,
+            "recipient_name": message.recipient_name,
+            "timestamp": message.created_at.isoformat(),
+            "custom_metadata": message.custom_metadata,
+        }
+
+        # Send message to recipient
+        await sio_server.emit("message", formatted_message, room=recipient_sid)
+        logger.debug(f"Message delivered to {recipient_id} via Socket.IO")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to deliver message to {recipient_id}: {e}")
+        return False
 
 
 async def deliver_undelivered_messages(user_id: str, sid: str):
@@ -263,7 +334,14 @@ async def deliver_undelivered_messages(user_id: str, sid: str):
 async def send_delivery_confirmation(message: dict):
     """Send delivery confirmation to message sender"""
     sender_id = message["sender_id"]
-    sender_sid = active_connections.get(sender_id)
+
+    # Find sender's session ID
+    sender_sid = None
+    for sid in active_connections.items():
+        user_info = session_users.get(sid)
+        if user_info and user_info.get("user_id") == sender_id:
+            sender_sid = sid
+            break
 
     if sender_sid:
         try:
@@ -282,14 +360,22 @@ async def send_delivery_confirmation(message: dict):
 
 def get_user_connection(user_id: str) -> str | None:
     """Get session ID for a connected user"""
-    return active_connections.get(user_id)
+    for sid in active_connections.items():
+        user_info = session_users.get(sid)
+        if user_info and user_info.get("user_id") == user_id:
+            return sid
+    return None
 
 
 def is_user_online(user_id: str) -> bool:
     """Check if user is currently online"""
-    return user_id in active_connections
+    return get_user_connection(user_id) is not None
 
 
 def get_online_users() -> list[str]:
     """Get list of online user IDs"""
-    return list(active_connections.keys())
+    online_users = []
+    for user_info in session_users.items():
+        if user_info.get("user_id"):
+            online_users.append(user_info["user_id"])
+    return online_users
