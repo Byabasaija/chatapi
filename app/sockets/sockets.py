@@ -67,6 +67,7 @@ async def connect(sid: str, environ: dict, auth: dict, client_service: ClientSer
             "client_id": str(client.id),
             "connection_key": connection_key,
         }
+        await notify_user_online(user_id, client.id)
 
         logger.info(
             f"User {user_id} from client {client.id} connected with session {sid}"
@@ -101,6 +102,8 @@ async def disconnect(sid: str):
         if connection_key:
             active_connections.pop(connection_key, None)
         session_users.pop(sid, None)
+        if user_id:
+            await notify_user_offline(user_id, client_id)
 
         logger.info(f"User {user_id} from client {client_id} disconnected")
 
@@ -171,14 +174,23 @@ async def send_message(
         if delivered:
             await message_service.mark_message_delivered(saved_message.id)
 
+        formatted_message = {
+            "message_id": str(saved_message.id),
+            "content": saved_message.content,
+            "encrypted_payload": saved_message.encrypted_payload,
+            "content_type": saved_message.content_type,
+            "sender_id": saved_message.sender_id,
+            "recipient_id": saved_message.recipient_id,
+            "sender_name": saved_message.sender_name,
+            "recipient_name": saved_message.recipient_name,
+            "timestamp": saved_message.created_at.isoformat(),
+            "delivered": delivered,
+        }
+
         # Acknowledge to sender
         await sio_server.emit(
             "message_sent",
-            {
-                "message_id": str(saved_message.id),
-                "delivered": delivered,
-                "created_at": saved_message.created_at.isoformat(),
-            },
+            formatted_message,
             room=sid,
         )
 
@@ -237,6 +249,31 @@ async def ping(sid: str):
     await sio_server.emit("pong", {}, room=sid)
 
 
+@sio_server.event
+async def get_online_users(sid: str):
+    """Handle request for online users list"""
+    user_info = session_users.get(sid)
+    if not user_info:
+        return
+
+    online = online_users()
+    await sio_server.emit("online_users", {"users": online}, room=sid)
+
+
+@sio_server.event
+async def check_user_status(sid: str, data: dict):
+    """Check if specific user is online"""
+    user_info = session_users.get(sid)
+    if not user_info:
+        return
+
+    target_user_id = data.get("user_id")
+    is_online = is_user_online(target_user_id)
+    await sio_server.emit(
+        "user_status", {"user_id": target_user_id, "online": is_online}, room=sid
+    )
+
+
 async def deliver_message(message) -> bool:
     """
     Deliver message to recipient via Socket.IO
@@ -251,12 +288,7 @@ async def deliver_message(message) -> bool:
 
     # Find recipient's connection key - we need to check all active connections
     # since we don't know which client they're connected through
-    recipient_sid = None
-    for sid in active_connections.items():
-        user_info = session_users.get(sid)
-        if user_info and user_info.get("user_id") == recipient_id:
-            recipient_sid = sid
-            break
+    recipient_sid = get_user_connection(recipient_id)
 
     if not recipient_sid:
         logger.info(f"Recipient {recipient_id} not connected")
@@ -333,12 +365,7 @@ async def send_delivery_confirmation(message: dict):
     sender_id = message["sender_id"]
 
     # Find sender's session ID
-    sender_sid = None
-    for sid in active_connections.items():
-        user_info = session_users.get(sid)
-        if user_info and user_info.get("user_id") == sender_id:
-            sender_sid = sid
-            break
+    sender_sid = get_user_connection(sender_id)
 
     if sender_sid:
         try:
@@ -357,7 +384,8 @@ async def send_delivery_confirmation(message: dict):
 
 def get_user_connection(user_id: str) -> str | None:
     """Get session ID for a connected user"""
-    for sid in active_connections.items():
+    # Iterate through active_connections
+    for connection_key, sid in active_connections.items():  # noqa
         user_info = session_users.get(sid)
         if user_info and user_info.get("user_id") == user_id:
             return sid
@@ -369,10 +397,72 @@ def is_user_online(user_id: str) -> bool:
     return get_user_connection(user_id) is not None
 
 
-def get_online_users() -> list[str]:
+def online_users() -> list[str]:
     """Get list of online user IDs"""
     online_users = []
-    for user_info in session_users.items():
+    for sid, user_info in session_users.items():  # noqa
         if user_info.get("user_id"):
             online_users.append(user_info["user_id"])
     return online_users
+
+
+# Additional useful presence functions you might want:
+
+
+def user_client_info(user_id: str) -> dict | None:
+    """Get full connection info for a user"""
+    for sid, user_info in session_users.items():
+        if user_info.get("user_id") == user_id:
+            return {
+                "session_id": sid,
+                "user_id": user_info.get("user_id"),
+                "client_id": user_info.get("client_id"),
+                "connection_key": user_info.get("connection_key"),
+            }
+    return None
+
+
+def online_users_by_client(client_id: str) -> list[str]:
+    """Get list of online user IDs for a specific client"""
+    return [
+        user_info["user_id"]
+        for user_info in session_users.values()
+        if user_info.get("client_id") == client_id and user_info.get("user_id")
+    ]
+
+
+def get_connection_count() -> int:
+    """Get total number of active connections"""
+    return len(session_users)
+
+
+def get_user_sessions_info() -> dict:
+    """Get detailed info about all active sessions (for debugging)"""
+    return {
+        "total_connections": len(session_users),
+        "active_connections": len(active_connections),
+        "sessions": session_users,
+        "connection_mappings": active_connections,
+    }
+
+
+async def notify_user_online(user_id: str, client_id: str):
+    """Notify relevant users that someone came online"""
+    await sio_server.emit(
+        "user_online",
+        {
+            "user_id": user_id,
+            "client_id": str(client_id),  # Convert to string
+        },
+    )
+
+
+async def notify_user_offline(user_id: str, client_id: str):
+    """Notify relevant users that someone went offline"""
+    await sio_server.emit(
+        "user_offline",
+        {
+            "user_id": user_id,
+            "client_id": str(client_id),  # Convert to string
+        },
+    )
