@@ -78,7 +78,7 @@ async def connect(sid: str, environ: dict, auth: dict, client_service: ClientSer
         )
 
         # Deliver any undelivered messages for this user within this client
-        await deliver_undelivered_messages(user_id, str(client.id), sid)
+        await deliver_undelivered_messages(user_id, sid)
 
         return True
 
@@ -156,7 +156,6 @@ async def send_message(
             "content": data.get("content"),
             "encrypted_payload": data.get("encrypted_payload"),
             "content_type": data.get("content_type", "text"),
-            "custom_metadata": data.get("custom_metadata", {}),
         }
 
         # Validate and create message
@@ -275,7 +274,6 @@ async def deliver_message(message) -> bool:
             "sender_name": message.sender_name,
             "recipient_name": message.recipient_name,
             "timestamp": message.created_at.isoformat(),
-            "custom_metadata": message.custom_metadata,
         }
 
         # Send message to recipient
@@ -311,7 +309,6 @@ async def deliver_undelivered_messages(user_id: str, sid: str):
                         "recipient_id": message["recipient_id"],
                         "recipient_name": message["recipient_name"],
                         "timestamp": message["created_at"],
-                        "custom_metadata": message["custom_metadata"],
                     },
                     room=sid,
                 )

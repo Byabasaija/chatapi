@@ -205,7 +205,6 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             "encrypted_payload": message.encrypted_payload,
             "content": message.content,
             "content_type": message.content_type,
-            "custom_metadata": message.custom_metadata,
             "created_at": message.created_at.isoformat()
             if message.created_at
             else None,

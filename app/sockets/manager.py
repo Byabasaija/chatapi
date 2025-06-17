@@ -128,7 +128,6 @@ class ConnectionManager:
             "sender_name": message_data.get("sender_name"),
             "recipient_name": message_data.get("recipient_name"),
             "timestamp": message_data.get("created_at"),  # Already a string
-            "custom_metadata": message_data.get("custom_metadata"),
         }
 
         await websocket.send_json(formatted_message)

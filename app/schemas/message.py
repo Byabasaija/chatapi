@@ -21,7 +21,8 @@ class MessageBase(BaseModel):
     recipient_name: str | None = None
     group_id: str | None = None
     content_type: ContentType | None = ContentType.text
-    custom_metadata: dict | None = {}
+    read_status: bool | None = None
+    read_at: datetime | None = None
 
 
 # Schema for creating a message
@@ -57,6 +58,8 @@ class MessageRead(MessageCreate):
 class MessageUpdate(BaseModel):
     delivered: bool | None = None
     delivered_at: datetime | None = None
+    read_status: bool | None = None
+    read_at: datetime | None = None
 
     model_config = {
         "from_attributes": True  # Allows conversion from SQLAlchemy model

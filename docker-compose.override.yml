@@ -29,11 +29,13 @@ services:
           ignore:
             - ./app/.venv
             - .venv
+            - ./app/alembic
         - path: ./pyproject.toml
           action: rebuild
     # TODO: remove once coverage is done locally
     volumes:
       - ./htmlcov:/chatapi/htmlcov
+      - ./app/alembic:/chatapi/app/alembic
 
 
 networks:

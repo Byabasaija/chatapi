@@ -3,7 +3,6 @@ from enum import Enum
 from uuid import uuid4
 
 from sqlalchemy import Boolean, Column, DateTime, String, text
-from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import validates
 
@@ -41,10 +40,11 @@ class Message(Base):
     content = Column(String, nullable=True)
     content_type = Column(String, default=ContentType.text.value, nullable=True)
 
-    custom_metadata = Column(JSON, default=dict, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     delivered = Column(Boolean, default=False, nullable=False)
     delivered_at = Column(DateTime, nullable=True)
+    read_status = Column(Boolean, default=False, nullable=False)
+    read_at = Column(DateTime, nullable=True)
 
     @validates("encrypted_payload", "content")
     def validate_encryption_mode(self, key, value):

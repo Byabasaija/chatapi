@@ -173,7 +173,6 @@ async def _handle_send_message(
         "recipient_id": message.get("recipient_id"),
         "content": message.get("content"),
         "content_type": message.get("content_type", "text"),
-        "custom_metadata": message.get("custom_metadata", {}),
     }
 
     # Validate message data using Pydantic schema
