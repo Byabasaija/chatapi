@@ -1,178 +1,415 @@
-# FastAPI - Development
+# ChatAPI - Development Guide
 
-## Docker Compose
+Welcome to the ChatAPI development guide! This document provides comprehensive instructions for setting up, developing, and contributing to the ChatAPI project - an open-source messaging and notifications API service.
 
-- Start the local stack with Docker Compose:
+---
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Technology Stack](#technology-stack)
+- [Quick Start](#quick-start)
+- [Docker Development](#docker-development)
+- [Local Development](#local-development)
+- [Code Quality & Pre-commit](#code-quality--pre-commit)
+- [Testing](#testing)
+- [Database Operations](#database-operations)
+- [Background Tasks](#background-tasks)
+- [Real-time Features](#real-time-features)
+- [Scripts Reference](#scripts-reference)
+- [API Documentation](#api-documentation)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Project Overview
+
+ChatAPI is a high-performance, open-source messaging and notifications API service designed for in-app communication. It features:
+
+- ⚡ **FastAPI** backend for high-performance APIs
+- 🔔 **Real-time messaging** via WebSockets and Socket.IO
+- 🔑 **API key-based authentication** for secure client access
+- 💾 **PostgreSQL** with async SQLAlchemy/SQLModel
+- 🏭 **Celery** for background task processing
+- 🐋 **Full Docker** support for development and production
+
+---
+
+## Technology Stack
+
+- **Backend:** FastAPI 0.114.2+, SQLModel, SQLAlchemy (async)
+- **Database:** PostgreSQL 12+ with asyncpg driver
+- **Real-time:** Socket.IO, WebSockets
+- **Task Queue:** Celery with RabbitMQ
+- **Authentication:** API keys with bcrypt hashing
+- **Containerization:** Docker & Docker Compose
+- **Testing:** Pytest with coverage reports
+- **Code Quality:** Ruff (linting & formatting), MyPy, pre-commit
+- **Migrations:** Alembic
+- **Monitoring:** Sentry integration
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-started/) & [Docker Compose](https://docs.docker.com/compose/)
+- [uv](https://docs.astral.sh/uv/) (for local development)
+- Python 3.10+ (if developing without Docker)
+
+### Environment Setup
+
+1. **Clone and setup:**
+   ```bash
+   git clone https://github.com/Byabasaija/chatapi
+   cd chatapi
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+2. **Start the development stack:**
+   ```bash
+   docker compose up --build
+   ```
+
+3. **Access the services:**
+   - **API:** http://localhost:8000
+   - **API Docs:** http://localhost:8000/docs
+   - **Adminer (DB UI):** http://localhost:8080
+   - **Socket.IO:** ws://localhost:8000/sockets
+
+---
+
+## Docker Development
+
+### Using Docker Compose
+
+The project uses Docker Compose for orchestrated development with hot-reload:
 
 ```bash
+# Start all services with hot-reload
+docker compose up --build
+
+# Start with watch mode (auto-rebuild on changes)
 docker compose watch
-```
 
-- Now you can open your browser and interact with these URLs:
-
-API, JSON based web API based on OpenAPI: http://localhost:8000
-
-Automatic interactive documentation with Swagger UI (from the OpenAPI backend): http://localhost:8000/docs
-
-Adminer, database web administration: http://localhost:8080
-
-To check the logs, run (in another terminal):
-
-```bash
+# View logs
 docker compose logs
+docker compose logs api  # specific service
+
+# Stop services
+docker compose down -v --remove-orphans
 ```
 
-To check the logs of a specific service, add the name of the service, e.g.:
+### Individual Service Management
 
 ```bash
-docker compose logs app
+# Start specific services
+docker compose up db adminer
+docker compose start api
+
+# Stop specific services
+docker compose stop api
+
+# Restart with rebuild
+docker compose up --build api
 ```
+
+### Container Access
+
+```bash
+# Access running API container
+docker compose exec api bash
+
+# Run commands in container
+docker compose exec api python app/api_pre_start.py
+docker compose exec api alembic upgrade head
+```
+
+---
 
 ## Local Development
 
-The Docker Compose files are configured so that each of the services is available in a different port in `localhost`.
+### Setup without Docker
 
-You can run an idnividual service by running:
+1. **Create virtual environment:**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Linux/Mac
+   # or
+   .venv\Scripts\activate     # Windows
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   # Using uv (recommended)
+   uv sync
+
+   # Or using pip
+   pip install -e .
+   ```
+
+3. **Setup database:**
+   ```bash
+   # Start PostgreSQL (via Docker or local install)
+   docker compose up db -d
+
+   # Run migrations
+   alembic upgrade head
+   ```
+
+4. **Start the API:**
+   ```bash
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+---
+
+## Code Quality & Pre-commit
+
+We use [pre-commit](https://pre-commit.com/) for code quality enforcement with Ruff and MyPy.
+
+### Setup Pre-commit
 
 ```bash
-docker compose start service_name
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Run manually on all files
+uv run pre-commit run --all-files
 ```
 
-Eg.
+### Manual Code Quality
 
 ```bash
-docker compose start app
+# Format code
+bash scripts/format.sh
+# or
+uv run ruff format app scripts
+
+# Lint code
+bash scripts/lint.sh
+# or
+uv run ruff check app scripts --fix
+
+# Type checking
+uv run mypy app
 ```
 
-You can stop that `app` service in the Docker Compose, in another terminal, run:
+### Pre-commit Configuration
+
+The `.pre-commit-config.yaml` includes:
+- **Ruff** for linting and formatting
+- **YAML/TOML** validation
+- **Large file** detection
+- **Trailing whitespace** removal
+
+---
+
+## Testing
+
+### Running Tests
 
 ```bash
-docker compose stop app
+# Run all tests with Docker
+bash scripts/run-test.sh
+
+# Run tests locally (without Docker)
+bash scripts/test-local.sh
+
+# Run specific tests
+bash scripts/tests-start.sh
+
+# Run tests with coverage
+uv run pytest --cov=app --cov-report=html
 ```
 
-This applies for all other services:
+### Test Structure
 
-## The .env file
+- **Unit tests:** `app/tests/api/routes/`
+- **Integration tests:** `app/tests/scripts/`
+- **Test utilities:** `app/tests/utils/`
+- **Coverage reports:** `htmlcov/` directory
 
-The `.env` file is the one that contains all your configurations, generated keys and passwords, etc.
+---
 
-## Pre-commits and code linting
+## Database Operations
 
-we are using a tool called [pre-commit](https://pre-commit.com/) for code linting and formatting.
-
-When you install it, it runs right before making a commit in git. This way it ensures that the code is consistent and formatted even before it is committed.
-
-You can find a file `.pre-commit-config.yaml` with configurations at the root of the project.
-
-#### Install pre-commit to run automatically
-
-`pre-commit` is already part of the dependencies of the project, but you could also install it globally if you prefer to, following [the official pre-commit docs](https://pre-commit.com/).
-
-After having the `pre-commit` tool installed and available, you need to "install" it in the local repository, so that it runs automatically before each commit.
-
-Using `uv`, you could do it with:
+### Migrations with Alembic
 
 ```bash
-❯ uv run pre-commit install
-pre-commit installed at .git/hooks/pre-commit
+# Create a new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Downgrade to specific revision
+alembic downgrade <revision>
+
+# View migration history
+alembic history
 ```
 
-Now whenever you try to commit, e.g. with:
+### Database Access
 
 ```bash
-git commit
+# Access via Adminer UI
+# http://localhost:8080
+# Server: db, User: postgres, Password: (from .env)
+
+# Direct database access
+docker compose exec db psql -U postgres -d chatapi
 ```
 
-...pre-commit will run and check and format the code you are about to commit, and will ask you to add that code (stage it) with git again before committing.
+---
 
-Then you can `git add` the modified/fixed files again and now you can commit.
+## Background Tasks
 
-#### Running pre-commit hooks manually
+### Celery Workers
 
-you can also run `pre-commit` manually on all the files, you can do it using `uv` with:
+The project uses Celery for background task processing:
 
 ```bash
-❯ uv run pre-commit run --all-files
-check for added large files..............................................Passed
-check toml...............................................................Passed
-check yaml...............................................................Passed
-ruff.....................................................................Passed
-ruff-format..............................................................Passed
-eslint...................................................................Passed
-prettier.................................................................Passed
+# Start worker manually
+bash scripts/worker-start.sh
+
+# Access worker container
+docker compose exec celeryworker bash
+
+# Monitor tasks
+docker compose logs celeryworker
 ```
 
-## URLs
+### Task Examples
 
-The production or staging URLs would use these same paths, but with your own domain.
+- Message processing
+- Notification delivery
+- Data cleanup tasks
 
-### Development URLs
+---
 
-Development URLs, for local development.
+## Real-time Features
 
-App: http://localhost:8000
+### WebSocket Connections
 
-Automatic Interactive Docs (Swagger UI): http://localhost:8000/docs
+- **FastAPI WebSockets:** `/api/v1/websocket/open`
+- **Socket.IO:** `/sockets` endpoint
 
-Automatic Alternative Docs (ReDoc): http://localhost:8000/redoc
-
-Adminer: http://localhost:8080
-
-## Commit message emoji guidlines
-
-- ✨ **New Feature** – Add new functionality
-- 🐛 **Bug Fix** – Fix a bug
-- ♻️ **Refactor** – Code restructuring without behavior change
-- 🔥 **Remove** – Delete code or files
-- 📝 **Docs** – Documentation changes
-- 🎨 **Style** – Code style changes (formatting, etc.)
-- ✅ **Tests** – Add or update tests
-- 🔧 **Config** – Update config/build scripts
-- 🚀 **Performance** – Improve performance
-- 💄 **UI** – Update UI styles
-- 🚨 **Linter** – Fix compiler/linter warnings
-- 🗃️ **DB** – Database related changes
-- 🔒 **Security** – Fix security issues
-- ⬆️ **Upgrade** – Upgrade dependencies
-- ⬇️ **Downgrade** – Downgrade dependencies
-- 👷 **CI** – CI/CD changes
-- 📦 **Package** – Package-related changes
-- 💥 **Breaking Change** – Breaking API/logic change
-- ⏪ **Revert** – Revert previous commit
-- 🚧 **WIP** – Work in progress
-- 🧪 **Experiment** – Experimental code/tests
-
-## Migrations
-
-As during local development your app directory is mounted as a volume inside the container, you can also run the migrations with alembic commands inside the container and the migration code will be in your app directory (instead of being only inside the container). So you can add it to your git repository.
-
-Make sure you create a "revision" of your models and that you "upgrade" your database with that revision every time you change them. As this is what will update the tables in your database. Otherwise, your application will have errors.
-
-Start an interactive session in the app container:
+### Testing WebSockets
 
 ```bash
-docker compose exec api bash
+# Test WebSocket connection
+wscat -c ws://localhost:8000/api/v1/websocket/open
+
+# Test Socket.IO
+# Use Socket.IO client or browser developer tools
 ```
 
-Alembic is already configured to import your SQLModel models from ./backend/app/models.py.
+---
 
-After changing a model (for example, adding a column), inside the container, create a revision, e.g.:
+## Scripts Reference
+
+Available scripts in `scripts/` directory:
+
+- **`format.sh`** - Format code with Ruff
+- **`lint.sh`** - Lint code with Ruff
+- **`migrate.sh`** - Run database migrations
+- **`prestart.sh`** - Pre-start database checks
+- **`run-test.sh`** - Run all tests with Docker
+- **`test-local.sh`** - Run tests locally
+- **`tests-start.sh`** - Start test suite
+- **`worker-start.sh`** - Start Celery worker
+
+---
+
+## API Documentation
+
+### Interactive Documentation
+
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+- **OpenAPI JSON:** http://localhost:8000/api/v1/openapi.json
+
+### API Endpoints
+
+- **Health Check:** `GET /api/v1/utils/health-check`
+- **Client Management:** `/api/v1/clients/*`
+- **Message Operations:** `/api/v1/messages/*`
+- **WebSocket:** `/api/v1/websocket/*`
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Database connection issues:**
 ```bash
-alembic revision --autogenerate -m "Add column"
+# Check database status
+docker compose logs db
+
+# Restart database
+docker compose restart db
+
+# Verify connection
+docker compose exec api python app/api_pre_start.py
 ```
 
-Commit to the git repository the files generated in the alembic directory.
+**Port conflicts:**
+- Change exposed ports in `docker-compose.override.yml`
+- Kill processes using the ports: `sudo lsof -ti:8000 | xargs kill -9`
 
-After creating the revision, run the migration in the database (this is what will actually change the database):
+**Dependency issues:**
 ```bash
+# Clean rebuild
+docker compose down -v --remove-orphans
+docker compose build --no-cache
+docker compose up --build
+```
+
+**Migration problems:**
+```bash
+# Check migration status
+alembic current
+
+# Reset database (development only)
+docker compose down -v
+docker compose up db -d
 alembic upgrade head
 ```
-If you don't want to use migrations at all, uncomment the lines in the file at ./backend/app/core/db.py that end in:
 
-SQLModel.metadata.create_all(engine)
-and comment the line in the file scripts/prestart.sh that contains:
+### Environment Variables
 
-```bash
-alembic upgrade head
-```
-If you don't want to start with the default models and want to remove them / modify them, from the beginning, without having any previous revision, you can remove the revision files (.py Python files) under ./backend/app/alembic/versions/. And then create a first migration as described above.
+Ensure your `.env` file contains:
+- `POSTGRES_*` variables for database connection
+- `SECRET_KEY` for security
+- `ENVIRONMENT=local` for development
+- `CLIENT_KEY` for API authentication
+
+---
+
+## Contributing
+
+### Development Workflow
+
+1. **Fork and clone** the repository
+2. **Create a feature branch:** `git checkout -b feature/your-feature`
+3. **Make changes** and add tests
+4. **Run quality checks:** `uv run pre-commit run --all-files`
+5. **Run tests:** `bash scripts/test-local.sh`
+6. **Commit with descriptive messages**
+7. **Push and create a pull request**
+
+### Code Standards
+
+- Follow **PEP 8** style guidelines
+- Use **type hints** for all functions
+- Write **comprehensive tests**
+- Document **complex logic**
+- Keep **commits atomic** and well-described
+
+---
+
+For further questions, refer to the [README.md](README.md), check the [SECURITY.md](SECURITY.md) for security guidelines, or open a discussion on GitHub.
