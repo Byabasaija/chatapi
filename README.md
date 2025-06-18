@@ -1,118 +1,155 @@
 # ChatAPI
 
-An Open Source, free in-app messaging/chatting and notifications API service.
+A high-performance, open-source messaging and notifications API service for in-app communication.
 
-## Table of Contents
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.114.2+-green.svg)](https://fastapi.tiangolo.com/)
 
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [API Documentation](#api-documentation)
-- [Testing](#testing)
-- [Security](#security)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
-## Features
+## Overview
 
-- ⚡ **FastAPI** backend for high performance APIs
-- 🧰 **SQLAlchemy** ORM for database interactions
-- 💾 **PostgreSQL** as the primary database
-- 🐋 **Docker Compose** for local and production deployments
-- 🔑 API key-based authentication for clients
-- 🔔 Real-time messaging and notifications (WebSocket & Socket.IO)
-- ✅ Automated testing with **Pytest**
-- 🏭 CI/CD with GitHub Actions
-- 📖 Interactive API docs (Swagger UI)
+ChatAPI provides a robust, scalable solution for real-time messaging and notifications in modern applications. Built with FastAPI and designed for cloud-native deployments, it offers enterprise-grade performance with developer-friendly APIs.
 
-## Technology Stack
+## ✨ Key Features
 
-- Python 3.10+
-- FastAPI
-- SQLModel & SQLAlchemy
-- PostgreSQL
-- Celery (for background tasks)
-- Docker & Docker Compose
-- Pydantic v2
-- Starlette (ASGI server)
-- Socket.IO (real-time communication)
+- 🚀 **High Performance** - Async FastAPI backend with SQLAlchemy ORM
+- 💬 **Real-time Messaging** - WebSocket and Socket.IO support
+- 🔐 **Secure Authentication** - API key-based client authentication
+- � **PostgreSQL Database** - Reliable data persistence with async drivers
+- � **Background Tasks** - Celery integration for async processing
+- � **Docker Ready** - Full containerization for easy deployment
+- � **Auto Documentation** - Interactive API docs with Swagger UI
+- 🧪 **Well Tested** - Comprehensive test suite with coverage reports
+- 🏭 **CI/CD Ready** - GitHub Actions workflows included
 
-## Getting Started
+## 🛠 Technology Stack
+
+| Component          | Technology                                     |
+| ------------------ | ---------------------------------------------- |
+| **Backend**        | FastAPI 0.114.2+, SQLModel, SQLAlchemy (async) |
+| **Database**       | PostgreSQL 12+ with asyncpg driver             |
+| **Real-time**      | WebSockets, Socket.IO                          |
+| **Task Queue**     | Celery with RabbitMQ                           |
+| **Authentication** | API keys with bcrypt hashing                   |
+| **Deployment**     | Docker, Docker Compose                         |
+| **Testing**        | Pytest with coverage                           |
+| **Code Quality**   | Ruff, MyPy, pre-commit hooks                   |
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started)
-- [Docker Compose](https://docs.docker.com/compose/)
+- [Docker](https://docs.docker.com/get-started/) and [Docker Compose](https://docs.docker.com/compose/)
+- [Git](https://git-scm.com/) for cloning the repository
 
-### Clone the Repository
+### Installation
+
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/Byabasaija/chatapi.git
+   cd chatapi
+   ```
+
+2. **Setup environment:**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Start the services:**
+
+   ```bash
+   docker compose up --build
+   ```
+
+4. **Access the application:**
+   - **API:** http://localhost:8000
+   - **Interactive Docs:** http://localhost:8000/docs
+   - **Database UI:** http://localhost:8080 (Adminer)
+
+### API Usage Example
 
 ```bash
-git clone https://github.com/Byabasaija/chatapi.git
-cd chatapi
+# Health check
+curl http://localhost:8000/api/v1/utils/health-check
+
+# Create API client (requires authentication)
+curl -X POST "http://localhost:8000/api/v1/clients/" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "My App", "encryption_mode": "none"}'
 ```
 
-### Environment Variables
+## 📖 Documentation
 
-Copy the example environment file and update as needed:
+- **[Development Guide](development.md)** - Comprehensive development setup and workflows
+- **[API Documentation](http://localhost:8000/docs)** - Interactive Swagger UI (when running)
+- **[Security Guidelines](SECURITY.md)** - Security policies and reporting
+
+## 🧪 Testing
 
 ```bash
-cp .env.example .env
+# Run all tests
+bash scripts/run-test.sh
+
+# Run tests locally
+bash scripts/test-local.sh
 ```
 
-### Start the Application
+Coverage reports are available in the `htmlcov/` directory after running tests.
+
+## 🔒 Security
+
+Security is our top priority. If you discover a vulnerability:
+
+- **Do not** create a public issue
+- **Email:** basaijapascal9@gmail.com
+- Include detailed reproduction steps
+- Allow time for assessment and patching
+
+See [SECURITY.md](SECURITY.md) for our complete security policy.
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Read the [Development Guide](development.md)** for setup instructions
+2. **Fork** the repository and create a feature branch
+3. **Make your changes** with tests and documentation
+4. **Submit a pull request** with a clear description
+
+For questions or discussions, use [GitHub Discussions](https://github.com/Byabasaija/chatapi/discussions).
+
+### Development Quick Start
+
+For detailed development instructions, see [development.md](development.md). Quick commands:
 
 ```bash
-docker compose up --build
+# Format code
+bash scripts/format.sh
+
+# Lint code
+bash scripts/lint.sh
+
+# Run migrations
+alembic upgrade head
 ```
 
-- API: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-- Adminer (DB UI): http://localhost:8080
+## 📄 License
 
-## Development
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-- Start the local stack:
-  ```bash
-  docker compose watch
-  ```
-- View logs:
-  ```bash
-  docker compose logs
-  # or for a specific service
-  docker compose logs api
-  ```
-- Run code formatting and linting:
-  ```bash
-  bash scripts/format.sh
-  bash scripts/lint.sh
-  ```
-- Run migrations:
-  ```bash
-  bash scripts/migrate.sh
-  ```
+---
 
-## API Documentation
+## 🔗 Links
 
-- Interactive docs: [Swagger UI](http://localhost:8000/docs)
-- OpenAPI schema: [OpenAPI JSON](http://localhost:8000/api/v1/openapi.json)
+- **[GitHub Repository](https://github.com/Byabasaija/chatapi)**
+- **[Issue Tracker](https://github.com/Byabasaija/chatapi/issues)**
+- **[Discussions](https://github.com/Byabasaija/chatapi/discussions)**
 
-## Testing
+---
 
-- Run all tests:
-  ```bash
-  bash scripts/test-local.sh
-  ```
-- Coverage reports are generated in the `htmlcov/` directory.
-
-## Security
-
-Security is a top priority. If you discover a vulnerability, please report it by email to: basaijapascal9@gmail.com. Do not disclose security issues publicly until they are resolved. See [SECURITY.md](./SECURITY.md) for more details.
-
-## Contributing
-
-Contributions are welcome! Please open issues or pull requests. For questions, use [GitHub Discussions](https://github.com/Byabasaija/chatapi/discussions/categories/questions).
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
+**Built with ❤️ by [Pascal Byabasaija](https://github.com/Byabasaija)**
