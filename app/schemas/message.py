@@ -1,9 +1,9 @@
-# app/schemas/message.py
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 
 class ContentType(str, Enum):
@@ -11,65 +11,60 @@ class ContentType(str, Enum):
     image = "image"
     file = "file"
     video = "video"
+    audio = "audio"
+    document = "document"
 
 
-# Base schema with common attributes
+# Shared base schema
 class MessageBase(BaseModel):
-    sender_id: str
-    recipient_id: str
-    sender_name: str | None = None
-    recipient_name: str | None = None
-    group_id: str | None = None
-    content_type: ContentType | None = ContentType.text
-    read_status: bool | None = None
-    read_at: datetime | None = None
+    content: str | None = None
+    content_type: ContentType = ContentType.text
+    file_url: str | None = None
+    file_name: str | None = None
+    file_size: int | None = None
+    file_mime_type: str | None = None
+    reply_to_id: UUID | None = None
 
 
 # Schema for creating a message
 class MessageCreate(MessageBase):
-    encrypted_payload: str | None = None
-    content: str | None = None
-
-    @field_validator("*")
-    def check_encryption_mode(cls, v, info):
-        values = info.data
-        if "encrypted_payload" in values and "content" in values:
-            if bool(values.get("content")) == bool(values.get("encrypted_payload")):
-                raise ValueError(
-                    "Provide either `content` or `encrypted_payload`, not both or neither."
-                )
-        return v
+    room_id: UUID
+    sender_user_id: str
+    sender_display_name: str
 
 
 # Schema for reading a message (response model)
-class MessageRead(MessageCreate):
+class MessageRead(MessageBase):
     id: UUID
-    client_id: str
+    room_id: UUID
+    sender_user_id: str
+    sender_display_name: str
+    is_edited: bool
+    is_deleted: bool
     created_at: datetime
-    delivered: bool
-    delivered_at: datetime | None = None
+    updated_at: datetime
+    edited_at: datetime | None = None
+    reply_to: Optional["MessageRead"] = None
+    replies: list["MessageRead"] = []
 
-    model_config = {
-        "from_attributes": True  # Allows conversion from SQLAlchemy model
-    }
+    model_config = {"from_attributes": True}
 
 
-# Schema for updating a message
+# Self-referencing fix (use forward refs)
+MessageRead.model_rebuild()
+
+
+# Schema for updating delivery/read status (optional)
 class MessageUpdate(BaseModel):
-    delivered: bool | None = None
-    delivered_at: datetime | None = None
-    read_status: bool | None = None
-    read_at: datetime | None = None
+    is_edited: bool | None = None
+    is_deleted: bool | None = None
+    edited_at: datetime | None = None
 
-    model_config = {
-        "from_attributes": True  # Allows conversion from SQLAlchemy model
-    }
+    model_config = {"from_attributes": True}
 
 
-# Additional schema for conversation summary
+# Schema for conversation summary
 class ConversationSummary(BaseModel):
-    """Schema for conversation summary"""
-
     partner_id: str
     last_message: MessageRead
     unread_count: int
