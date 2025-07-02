@@ -183,7 +183,7 @@ async def send_message(
             "recipient_id": saved_message.recipient_id,
             "sender_name": saved_message.sender_name,
             "recipient_name": saved_message.recipient_name,
-            "timestamp": saved_message.created_at.isoformat(),
+            "created_at": saved_message.created_at.isoformat(),
             "delivered": delivered,
         }
 
@@ -305,7 +305,7 @@ async def deliver_message(message) -> bool:
             "recipient_id": message.recipient_id,
             "sender_name": message.sender_name,
             "recipient_name": message.recipient_name,
-            "timestamp": message.created_at.isoformat(),
+            "created_at": message.created_at.isoformat(),
         }
 
         # Send message to recipient
@@ -340,7 +340,7 @@ async def deliver_undelivered_messages(user_id: str, sid: str):
                         "sender_name": message["sender_name"],
                         "recipient_id": message["recipient_id"],
                         "recipient_name": message["recipient_name"],
-                        "timestamp": message["created_at"],
+                        "created_at": message["created_at"],
                     },
                     room=sid,
                 )
