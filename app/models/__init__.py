@@ -1,11 +1,11 @@
 from .client import Client, ScopedKey, ScopedKeyPermission
 from .messages import Message
-from .rooms import RoomMembership
+from .rooms import Room, RoomMembership
 
 __all__ = [
     "Client",
     "Message",
-    " Room",
+    "Room",
     "RoomMembership",
     "ScopedKey",
     "ScopedKeyPermission",

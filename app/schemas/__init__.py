@@ -3,8 +3,14 @@ from .client import (
     ClientCreate,
     ClientRead,
     ClientUpdate,
+    ScopedKeyBase,
+    ScopedKeyCreate,
+    ScopedKeyPermission,
+    ScopedKeyRead,
+    ScopedKeyUpdate,
 )
 from .message import (
+    ConversationSummary,
     MessageCreate,
     MessageRead,
     MessageUpdate,
@@ -18,6 +24,12 @@ __all__ = [
     "MessageCreate",
     "MessageRead",
     "MessageUpdate",
+    "ScopedKeyCreate",
+    "ScopedKeyRead",
+    "ScopedKeyUpdate",
+    "ScopedKeyBase",
+    "ScopedKeyPermission",
+    "ConversationSummary",
 ]
 # __all__ is a convention in Python that defines the public interface of a module.
 # It specifies which names should be accessible when the module is imported with a wildcard import (e.g., from module import *).
