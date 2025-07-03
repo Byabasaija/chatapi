@@ -20,7 +20,7 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
-    master_api_key: str
+    pass
 
 
 class ClientUpdate(BaseModel):
@@ -76,5 +76,13 @@ class ScopedKeyRead(ScopedKeyBase):
     last_used_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ScopedKeyReadWithKey(ScopedKeyRead):
+    """Returned only once on creation with the key"""
+
+    scoped_api_key: str
 
     model_config = {"from_attributes": True}
