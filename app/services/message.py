@@ -1,10 +1,12 @@
 # app/services/message.py
-from datetime import datetime
+from uuid import UUID
 
 import sqlalchemy
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models.messages import Message
+from app.models.message import Message
+from app.models.room import Room, RoomMembership
 from app.schemas.message import MessageCreate, MessageUpdate
 from app.services.base import BaseService
 
@@ -13,208 +15,163 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
     def __init__(self, db: AsyncSession):
         super().__init__(model=Message, db=db)
 
-    async def save_message(self, message_data: MessageCreate) -> Message:
+    async def create_message(
+        self,
+        room_id: UUID,
+        sender_user_id: str,
+        sender_display_name: str,
+        message_data: MessageCreate,
+    ) -> Message:
         """
-        Save a message to the database
+        Create a new message in a room
 
         Args:
+            room_id: The room ID
+            sender_user_id: User ID of the sender
+            sender_display_name: Display name of the sender
             message_data: Message creation data
 
         Returns:
-            The saved message object
+            Created message object
         """
-        message = Message(**message_data.model_dump())
+        # Create message
+        message = Message(
+            room_id=room_id,
+            sender_user_id=sender_user_id,
+            sender_display_name=sender_display_name,
+            content=message_data.content,
+            content_type=message_data.content_type.value,
+            file_url=message_data.file_url,
+            file_name=message_data.file_name,
+            file_size=message_data.file_size,
+            file_mime_type=message_data.file_mime_type,
+            reply_to_id=message_data.reply_to_id,
+        )
+
         self.db.add(message)
         await self.db.commit()
         await self.db.refresh(message)
+
+        # Update room's last message timestamp
+        await self.db.execute(
+            sqlalchemy.update(Room)
+            .where(Room.id == room_id)
+            .values(last_message_at=sqlalchemy.func.now())
+        )
+        await self.db.commit()
+
         return message
 
-    async def mark_message_delivered(self, message_id: str) -> bool:
-        """
-        Mark a message as delivered
-
-        Args:
-            message_id: ID of the message to mark as delivered
-
-        Returns:
-            True if message was updated, False otherwise
-        """
-        try:
-            query = (
-                sqlalchemy.update(Message)
-                .where(Message.id == message_id)
-                .values(
-                    delivered=True,
-                    delivered_at=datetime.utcnow(),
-                )
-            )
-
-            result = await self.db.execute(query)
-            await self.db.commit()
-            return result.rowcount > 0
-
-        except Exception as e:
-            await self.db.rollback()
-            raise e
-
-    async def get_undelivered_messages(self, user_id: str) -> list[dict]:
-        """
-        Get undelivered messages for a user
-
-        Args:
-            user_id: ID of the user
-
-        Returns:
-            List of undelivered messages
-        """
+    async def get_room_messages(
+        self,
+        room_id: UUID,
+        limit: int = 50,
+        offset: int = 0,
+        before_message_id: UUID | None = None,
+    ) -> list[Message]:
+        """Get messages from a room with pagination"""
         query = (
             sqlalchemy.select(Message)
-            .where(
-                sqlalchemy.and_(
-                    Message.recipient_id == user_id, Message.delivered is False
-                )
-            )
+            .where(Message.room_id == room_id)
+            .where(Message.is_deleted is False)
+            .order_by(Message.created_at.desc())
+        )
+
+        if before_message_id:
+            # Get messages before a specific message (for pagination)
+            before_message = await self.get(id=before_message_id)
+            if before_message:
+                query = query.where(Message.created_at < before_message.created_at)
+
+        query = query.limit(limit).offset(offset)
+
+        result = await self.db.execute(query)
+        messages = result.scalars().all()
+
+        # Return in chronological order
+        return list(reversed(messages))
+
+    async def get_unread_messages(self, room_id: UUID, user_id: str) -> list[Message]:
+        """Get unread messages for a user in a room"""
+        # Get user's last read message
+        membership_result = await self.db.execute(
+            sqlalchemy.select(RoomMembership)
+            .where(RoomMembership.room_id == room_id)
+            .where(RoomMembership.user_id == user_id)
+            .where(RoomMembership.is_active is True)
+        )
+        membership = membership_result.scalar_one_or_none()
+
+        if not membership:
+            return []
+
+        query = (
+            sqlalchemy.select(Message)
+            .where(Message.room_id == room_id)
+            .where(Message.is_deleted is False)
+            .where(Message.sender_user_id != user_id)  # Don't include own messages
             .order_by(Message.created_at.asc())
         )
 
-        result = await self.db.execute(query)
-        messages = result.scalars().all()
-        return [self._message_to_dict(msg) for msg in messages]
-
-    async def get_chat_history(
-        self, sender_id: str, recipient_id: str, limit: int = 100, offset: int = 0
-    ) -> list[dict]:
-        """
-        Get chat history between two users
-
-        Args:
-            sender_id: ID of the sender
-            recipient_id: ID of the recipient
-            limit: Maximum number of messages to return
-            offset: Number of messages to skip
-
-        Returns:
-            List of messages between the two users
-        """
-        query = (
-            sqlalchemy.select(Message)
-            .where(
-                sqlalchemy.or_(
-                    sqlalchemy.and_(
-                        Message.sender_id == sender_id,
-                        Message.recipient_id == recipient_id,
-                    ),
-                    sqlalchemy.and_(
-                        Message.sender_id == recipient_id,
-                        Message.recipient_id == sender_id,
-                    ),
+        if membership.last_read_message_id:
+            # Get messages after last read message
+            last_read_result = await self.db.execute(
+                sqlalchemy.select(Message.created_at).where(
+                    Message.id == membership.last_read_message_id
                 )
             )
-            .order_by(Message.created_at.desc())
-            .limit(limit)
-            .offset(offset)
-        )
+            last_read_time = last_read_result.scalar_one_or_none()
+            if last_read_time:
+                query = query.where(Message.created_at > last_read_time)
 
         result = await self.db.execute(query)
-        messages = result.scalars().all()
-        return [self._message_to_dict(msg) for msg in messages]
+        return result.scalars().all()
 
-    async def get_user_conversations(self, user_id: str) -> list[dict]:
-        """
-        Get all conversations for a user with last message info
-
-        Args:
-            user_id: ID of the user
-
-        Returns:
-            List of conversation summaries with last message details
-        """
-        # Get all messages where user is sender or recipient
-        query = (
-            sqlalchemy.select(Message)
-            .where(
-                sqlalchemy.or_(
-                    Message.sender_id == user_id, Message.recipient_id == user_id
-                )
-            )
-            .order_by(Message.created_at.desc())
+    async def mark_messages_as_read(
+        self, room_id: UUID, user_id: str, message_id: UUID
+    ) -> bool:
+        """Mark messages as read up to a specific message"""
+        # Update room membership
+        result = await self.db.execute(
+            sqlalchemy.update(RoomMembership)
+            .where(RoomMembership.room_id == room_id)
+            .where(RoomMembership.user_id == user_id)
+            .where(RoomMembership.is_active is True)
+            .values(last_read_message_id=message_id, last_read_at=sqlalchemy.func.now())
         )
-
-        result = await self.db.execute(query)
-        messages = result.scalars().all()
-
-        # Group by conversation partner
-        conversations = {}
-        for message in messages:
-            partner_id = (
-                message.recipient_id
-                if message.sender_id == user_id
-                else message.sender_id
-            )
-
-            if partner_id not in conversations:
-                conversations[partner_id] = {
-                    "partner_id": partner_id,
-                    "partner_name": (
-                        message.recipient_name
-                        if message.sender_id == user_id
-                        else message.sender_name
-                    ),
-                    "last_message": self._message_to_dict(message),
-                    "unread_count": 0,
-                }
-
-        return list(conversations.values())
-
-    async def mark_messages_as_delivered(self, user_id: str, sender_id: str) -> int:
-        """
-        Mark messages from a sender to user as delivered
-
-        Args:
-            user_id: ID of the recipient
-            sender_id: ID of the sender
-
-        Returns:
-            Number of messages marked as delivered
-        """
-        query = (
-            sqlalchemy.update(Message)
-            .where(
-                sqlalchemy.and_(
-                    Message.recipient_id == user_id,
-                    Message.sender_id == sender_id,
-                    Message.delivered is False,
-                )
-            )
-            .values(delivered=True, delivered_at=datetime.utcnow())
-        )
-
-        result = await self.db.execute(query)
         await self.db.commit()
-        return result.rowcount
 
-    def _message_to_dict(self, message: Message) -> dict:
-        """Serialize a Message SQLAlchemy object to a dictionary."""
-        return {
-            "id": str(message.id),
-            "sender_id": message.sender_id,
-            "recipient_id": message.recipient_id,
-            "sender_name": message.sender_name,
-            "recipient_name": message.recipient_name,
-            "group_id": message.group_id,
-            "encrypted_payload": message.encrypted_payload,
-            "content": message.content,
-            "content_type": message.content_type,
-            "created_at": message.created_at.isoformat()
-            if message.created_at
-            else None,
-            "delivered": message.delivered,
-            "delivered_at": message.delivered_at.isoformat()
-            if message.delivered_at
-            else None,
-        }
+        return result.rowcount > 0
+
+    async def edit_message(self, message_id: UUID, new_content: str) -> Message | None:
+        """Edit a message"""
+        message = await self.get(id=message_id)
+        if message and not message.is_deleted:
+            message.content = new_content
+            message.mark_as_edited()
+            await self.db.commit()
+            await self.db.refresh(message)
+            return message
+        return None
+
+    async def delete_message(self, message_id: UUID) -> bool:
+        """Soft delete a message"""
+        message = await self.get(id=message_id)
+        if message and not message.is_deleted:
+            message.soft_delete()
+            await self.db.commit()
+            return True
+        return False
+
+    async def get_message_with_replies(self, message_id: UUID) -> Message | None:
+        """Get a message with its replies"""
+        result = await self.db.execute(
+            sqlalchemy.select(Message)
+            .where(Message.id == message_id)
+            .options(selectinload(Message.replies))
+        )
+        return result.scalar_one_or_none()
 
 
 def get_message_service(db: AsyncSession) -> MessageService:
-    """Factory function for dependency injection"""
     return MessageService(db)
