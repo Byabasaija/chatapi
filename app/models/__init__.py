@@ -1,6 +1,6 @@
 from .client import Client, ScopedKey, ScopedKeyPermission
 from .message import Message
-from .room import RoomMembership
+from .room import Room, RoomMembership
 
 __all__ = [
     "Client",
