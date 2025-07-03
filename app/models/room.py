@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -19,7 +19,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
-from app.models import Client, Message
+
+if TYPE_CHECKING:
+    from app.models.client import Client
+    from app.models.message import Message
 
 
 class RoomType(str, Enum):
@@ -65,7 +68,7 @@ class Room(Base):
     )
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # Relationships
+    # Relationships - use string references to avoid circular imports
     client: Mapped["Client"] = relationship("Client", back_populates="rooms")
     memberships: Mapped[list["RoomMembership"]] = relationship(
         "RoomMembership", back_populates="room", cascade="all, delete-orphan"
@@ -118,7 +121,7 @@ class RoomMembership(Base):
     )
     last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # Relationships
+    # Relationships - use string references
     room: Mapped["Room"] = relationship("Room", back_populates="memberships")
     last_read_message: Mapped[Optional["Message"]] = relationship(
         "Message", foreign_keys=[last_read_message_id]

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -18,7 +18,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
-from app.models import Room
+
+if TYPE_CHECKING:
+    from app.models.room import Room
 
 
 class ContentType(str, Enum):
