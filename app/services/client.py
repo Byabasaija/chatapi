@@ -106,6 +106,24 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
         )
         return result.scalars().all()
 
+    async def verify_scoped_api_key(
+        self, api_key: str
+    ) -> tuple[Client, ScopedKey] | None:
+        """Verify a scoped API key and return the client and scoped key if valid"""
+        # Get all active scoped keys with their clients
+        result = await self.db.execute(
+            sqlalchemy.select(ScopedKey, Client)
+            .join(Client)
+            .where(ScopedKey.is_active is True)
+            .where(Client.is_active is True)
+        )
+
+        for scoped_key, client in result.all():
+            if verify_api_key(api_key, scoped_key.scoped_api_key):
+                return client, scoped_key
+
+        return None
+
     async def revoke_scoped_key(self, scoped_key_id: UUID) -> bool:
         """Revoke a scoped key"""
         scoped_key = await self.db.get(ScopedKey, scoped_key_id)

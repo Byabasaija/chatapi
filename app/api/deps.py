@@ -3,11 +3,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session_maker
-from app.models.client import Client
+from app.models.client import Client, ScopedKey
 from app.services.client import ClientService, get_client_service
 from app.services.message import MessageService, get_message_service
 
@@ -40,20 +40,68 @@ def get_client_service_dep(db: AsyncSessionDep) -> ClientService:
 ClientServiceDep = Annotated[ClientService, Depends(get_client_service_dep)]
 
 
-# Auth dependency that validates API key
-async def validate_api_key(api_key: str, client_service: ClientServiceDep) -> Client:
-    client = await client_service.verify_api_key(api_key)
-    if not client:
+# Extract API key from Authorization header
+async def get_api_key_from_header(
+    authorization: Annotated[str | None, Header()] = None,
+    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+) -> str:
+    """
+    Extract API key from either Authorization header (Bearer token) or X-API-Key header
+    """
+    api_key = None
+
+    # Try Authorization header first (Bearer token)
+    if authorization:
+        if authorization.startswith("Bearer "):
+            api_key = authorization[7:]  # Remove "Bearer " prefix
+        else:
+            # Direct API key in Authorization header
+            api_key = authorization
+
+    # Fall back to X-API-Key header
+    elif x_api_key:
+        api_key = x_api_key
+
+    if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
+            detail="API key required. Provide it in Authorization header (Bearer token) or X-API-Key header",
             headers={"WWW-Authenticate": "ApiKey"},
         )
-    return client
+
+    return api_key
 
 
-# Use this as a dependency for protected endpoints
-AuthClientDep = Annotated[Client, Depends(validate_api_key)]
+# Validate ANY API key (master or scoped) - for flexible endpoints
+async def validate_any_api_key(
+    api_key: Annotated[str, Depends(get_api_key_from_header)],
+    client_service: ClientServiceDep,
+) -> tuple[Client, ScopedKey | None]:
+    """
+    Validate any API key (master or scoped) and return client + optional scoped key
+    Returns (client, None) for master keys, (client, scoped_key) for scoped keys
+    """
+    # Try master key first
+    client = await client_service.verify_master_api_key(api_key)
+    if client:
+        return client, None
+
+    # Try scoped key
+    result = await client_service.verify_scoped_api_key(api_key)
+    if result:
+        return result
+
+    # Neither worked
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid API key",
+        headers={"WWW-Authenticate": "ApiKey"},
+    )
+
+
+AuthClientDep = Annotated[
+    tuple[Client, ScopedKey | None], Depends(validate_any_api_key)
+]
 
 
 def get_message_service_dep(db: AsyncSessionDep) -> MessageService:
