@@ -19,6 +19,27 @@ from .message import (
     MessageUpdate,
     RoomMessageSummary,
 )
+from .room import (
+    MemberRole,
+    RoomBase,
+    RoomCreate,
+    RoomInviteRequest,
+    RoomJoinRequest,
+    RoomListResponse,
+    RoomMemberResponse,
+    RoomMembershipBase,
+    RoomMembershipCreate,
+    RoomMembershipRead,
+    RoomMembershipUpdate,
+    RoomRead,
+    RoomReadWithMembers,
+    RoomResponse,
+    RoomResponseBase,
+    RoomSearchRequest,
+    RoomSummary,
+    RoomType,
+    RoomUpdate,
+)
 
 __all__ = [
     "APIClientReadWithKey",
@@ -38,6 +59,25 @@ __all__ = [
     "ScopedKeyPermission",
     "ConversationSummary",
     "ScopedKeyReadWithKey",
+    "MemberRole",
+    "RoomBase",
+    "RoomCreate",
+    "RoomRead",
+    "RoomResponse",
+    "RoomResponseBase",
+    "RoomType",
+    "RoomUpdate",
+    "RoomMembershipBase",
+    "RoomMembershipCreate",
+    "RoomMembershipRead",
+    "RoomMembershipUpdate",
+    "RoomMemberResponse",
+    "RoomListResponse",
+    "RoomInviteRequest",
+    "RoomJoinRequest",
+    "RoomReadWithMembers",
+    "RoomSearchRequest",
+    "RoomSummary",
 ]
 # __all__ is a convention in Python that defines the public interface of a module.
 # It specifies which names should be accessible when the module is imported with a wildcard import (e.g., from module import *).
