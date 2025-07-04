@@ -31,7 +31,7 @@ async def create_api_client(
 
     # Convert DB model to Pydantic model with raw key included
     result = APIClientReadWithKey.model_validate(client)
-    result.api_key = raw_key  # Use the raw key in the response
+    result.master_api_key = raw_key  # Use the raw key in the response
 
     return result
 

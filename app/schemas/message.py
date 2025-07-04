@@ -70,3 +70,39 @@ class ConversationSummary(BaseModel):
     unread_count: int
 
     model_config = {"from_attributes": True}
+
+
+# Additional schemas for API endpoints
+class MessageSearchResult(BaseModel):
+    """Search result with message and context"""
+
+    message: MessageRead
+    room_id: UUID
+    relevance_score: float | None = None
+    context_before: str | None = None
+    context_after: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class MessageStats(BaseModel):
+    """Message statistics for analytics"""
+
+    total_messages: int
+    unread_count: int
+    last_message_at: datetime | None = None
+    first_message_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class RoomMessageSummary(BaseModel):
+    """Summary of messages in a room"""
+
+    room_id: UUID
+    total_messages: int
+    participants: list[str]
+    last_message: MessageRead | None = None
+    unread_count_by_user: dict[str, int] = {}
+
+    model_config = {"from_attributes": True}

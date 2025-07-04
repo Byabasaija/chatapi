@@ -14,7 +14,10 @@ from .message import (
     ConversationSummary,
     MessageCreate,
     MessageRead,
+    MessageSearchResult,
+    MessageStats,
     MessageUpdate,
+    RoomMessageSummary,
 )
 
 __all__ = [
@@ -25,6 +28,9 @@ __all__ = [
     "MessageCreate",
     "MessageRead",
     "MessageUpdate",
+    "MessageSearchResult",
+    "MessageStats",
+    "RoomMessageSummary",
     "ScopedKeyCreate",
     "ScopedKeyRead",
     "ScopedKeyUpdate",

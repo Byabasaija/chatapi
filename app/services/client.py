@@ -49,7 +49,7 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
         """Get a client by master API key using optimized database query"""
         # Get all clients with their hashed keys
         result = await self.db.execute(
-            sqlalchemy.select(Client).where(Client.is_active is True)
+            sqlalchemy.select(Client).where(Client.is_active == True)  # noqa
         )
         clients = result.scalars().all()
 
@@ -102,20 +102,20 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
         result = await self.db.execute(
             sqlalchemy.select(ScopedKey)
             .where(ScopedKey.client_id == client_id)
-            .where(ScopedKey.is_active is True)
+            .where(ScopedKey.is_active == True)  # noqa
         )
         return result.scalars().all()
 
     async def verify_scoped_api_key(
         self, api_key: str
-    ) -> tuple[Client, ScopedKey] | None:
+    ) -> tuple[Client, ScopedKey] | None:  # noqa
         """Verify a scoped API key and return the client and scoped key if valid"""
         # Get all active scoped keys with their clients
         result = await self.db.execute(
             sqlalchemy.select(ScopedKey, Client)
             .join(Client)
-            .where(ScopedKey.is_active is True)
-            .where(Client.is_active is True)
+            .where(ScopedKey.is_active == True)  # noqa
+            .where(Client.is_active == True)  # noqa
         )
 
         for scoped_key, client in result.all():

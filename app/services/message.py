@@ -73,7 +73,7 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
         query = (
             sqlalchemy.select(Message)
             .where(Message.room_id == room_id)
-            .where(Message.is_deleted is False)
+            .where(Message.is_deleted == False)  # noqa
             .order_by(Message.created_at.desc())
         )
 
@@ -98,7 +98,7 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             sqlalchemy.select(RoomMembership)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
         )
         membership = membership_result.scalar_one_or_none()
 
@@ -108,7 +108,7 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
         query = (
             sqlalchemy.select(Message)
             .where(Message.room_id == room_id)
-            .where(Message.is_deleted is False)
+            .where(Message.is_deleted == False)  # noqa
             .where(Message.sender_user_id != user_id)  # Don't include own messages
             .order_by(Message.created_at.asc())
         )
@@ -136,7 +136,7 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
             sqlalchemy.update(RoomMembership)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
             .values(last_read_message_id=message_id, last_read_at=sqlalchemy.func.now())
         )
         await self.db.commit()
