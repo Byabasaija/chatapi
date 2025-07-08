@@ -584,18 +584,18 @@ async def ping(sid: str):
 
 
 @sio_server.event
-async def get_online_users(sid: str):
+async def online_users(sid: str):
     """Handle request for online users list"""
     user_info = session_users.get(sid)
     if not user_info:
         return
 
-    online = online_users()
+    online = get_online_users()
     await sio_server.emit("online_users", {"users": online}, room=sid)
 
 
 @sio_server.event
-async def check_user_status(sid: str, data: dict):
+async def user_status(sid: str, data: dict):
     """Check if specific user is online"""
     user_info = session_users.get(sid)
     if not user_info:
@@ -640,7 +640,7 @@ def is_user_online(user_id: str) -> bool:
     return get_user_connection(user_id) is not None
 
 
-def online_users() -> list[str]:
+def get_online_users() -> list[str]:
     """Get list of online user IDs"""
     online_users = []
     for sid, user_info in session_users.items():  # noqa

@@ -124,6 +124,46 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
 
         return None
 
+    async def get_scoped_key_for_user(
+        self, client_id: UUID, user_id: str
+    ) -> ScopedKey | None:
+        """Get an existing active scoped key for a user within a client"""
+        result = await self.db.execute(
+            sqlalchemy.select(ScopedKey)
+            .where(ScopedKey.client_id == client_id)
+            .where(ScopedKey.user_id == user_id)
+            .where(ScopedKey.is_active == True)  # noqa
+        )
+        return result.scalar_one_or_none()
+
+    async def get_or_create_user_scoped_key(
+        self, client_id: UUID, user_id: str, permissions: list[ScopedKeyPermission]
+    ) -> tuple[ScopedKey, str, bool]:
+        """
+        Get existing scoped key for user or create a new one
+
+        Args:
+            client_id: The client ID
+            user_id: User ID from the integrating client
+            permissions: List of permissions for this scoped key
+
+        Returns:
+            Tuple containing (scoped_key, raw_api_key, is_new_key)
+        """
+        # Check if scoped key already exists for this user
+        existing_key = await self.get_scoped_key_for_user(client_id, user_id)
+
+        if existing_key:
+            # Return the existing key but we can't return the raw key since it's hashed
+            # For existing keys, we return None as raw key and indicate it's not new
+            return existing_key, existing_key.scoped_api_key, False
+
+        # Create new scoped key
+        scoped_key, raw_key = await self.create_scoped_key(
+            client_id, user_id, permissions
+        )
+        return scoped_key, raw_key, True
+
     async def revoke_scoped_key(self, scoped_key_id: UUID) -> bool:
         """Revoke a scoped key"""
         scoped_key = await self.db.get(ScopedKey, scoped_key_id)
@@ -132,6 +172,47 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
             await self.db.commit()
             return True
         return False
+
+    async def reset_user_key(
+        self,
+        client_id: UUID,
+        user_id: str,
+        permissions: list[ScopedKeyPermission] | None = None,
+    ) -> tuple[ScopedKey, str]:
+        """
+        Reset a user's API key by revoking the old one and creating a new one.
+
+        Args:
+            client_id: The client ID
+            user_id: The user identifier
+            permissions: Optional new permissions. If None, uses existing permissions
+
+        Returns:
+            Tuple containing (new_scoped_key, raw_api_key)
+        """
+        # Get the existing key to preserve permissions if not specified
+        existing_key = await self.get_scoped_key_for_user(client_id, user_id)
+
+        if existing_key:
+            # Use existing permissions if not provided
+            if permissions is None:
+                permissions = [
+                    ScopedKeyPermission(perm) for perm in existing_key.permissions
+                ]
+
+            # Revoke the old key
+            await self.revoke_scoped_key(existing_key.id)
+        else:
+            # If no existing key, use default permissions
+            if permissions is None:
+                permissions = [
+                    ScopedKeyPermission.READ_MESSAGES,
+                    ScopedKeyPermission.SEND_MESSAGES,
+                ]
+
+        # Create new key
+        new_key, raw_key = await self.create_scoped_key(client_id, user_id, permissions)
+        return new_key, raw_key
 
 
 def get_client_service(db: AsyncSession) -> ClientService:

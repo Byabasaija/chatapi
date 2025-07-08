@@ -86,3 +86,42 @@ class ScopedKeyReadWithKey(ScopedKeyRead):
     scoped_api_key: str
 
     model_config = {"from_attributes": True}
+
+
+# ======== USER AUTHENTICATION SCHEMAS ========
+
+
+class UserLoginRequest(BaseModel):
+    """Request schema for user login/authentication"""
+
+    user_id: str
+    display_name: str | None = None
+    permissions: list[ScopedKeyPermission] = [
+        ScopedKeyPermission.READ_MESSAGES,
+        ScopedKeyPermission.SEND_MESSAGES,
+    ]
+
+
+class UserLoginResponse(BaseModel):
+    """Response schema for user login - always returns a fresh API key"""
+
+    user_id: str
+    display_name: str
+    api_key: str  # Always a new key that replaces any previous key
+    permissions: list[ScopedKeyPermission]
+
+
+class UserKeyResetRequest(BaseModel):
+    """Request schema for resetting a user's API key"""
+
+    user_id: str
+    reason: str | None = None  # Optional reason for auditing
+
+
+class UserKeyResetResponse(BaseModel):
+    """Response schema for key reset"""
+
+    user_id: str
+    api_key: str
+    permissions: list[ScopedKeyPermission]
+    message: str

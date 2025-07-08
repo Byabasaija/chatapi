@@ -67,8 +67,8 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             .join(RoomMembership)
             .where(Room.client_id == client_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
-            .where(Room.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
+            .where(Room.is_active == True)  # noqa
             .options(selectinload(Room.memberships))
         )
         return result.scalars().all()
@@ -95,7 +95,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             sqlalchemy.select(RoomMembership)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
         )
 
         if existing.scalar_one_or_none():
@@ -107,7 +107,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             member_count = await self.db.execute(
                 sqlalchemy.select(sqlalchemy.func.count(RoomMembership.id))
                 .where(RoomMembership.room_id == room_id)
-                .where(RoomMembership.is_active is True)
+                .where(RoomMembership.is_active == True)  # noqa
             )
             if member_count.scalar() >= room.max_members:
                 return None  # Room is full
@@ -132,7 +132,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             sqlalchemy.select(RoomMembership)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
         )
 
         membership = result.scalar_one_or_none()
@@ -149,7 +149,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             sqlalchemy.select(RoomMembership)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
         )
         return result.scalar_one_or_none() is not None
 
@@ -159,7 +159,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
             sqlalchemy.select(RoomMembership.role)
             .where(RoomMembership.room_id == room_id)
             .where(RoomMembership.user_id == user_id)
-            .where(RoomMembership.is_active is True)
+            .where(RoomMembership.is_active == True)  # noqa
         )
         role_str = result.scalar_one_or_none()
         return MemberRole(role_str) if role_str else None
