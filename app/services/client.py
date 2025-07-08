@@ -173,6 +173,15 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
             return True
         return False
 
+    async def delete_scoped_key(self, scoped_key_id: UUID) -> bool:
+        """Permanently delete a scoped key"""
+        scoped_key = await self.db.get(ScopedKey, scoped_key_id)
+        if scoped_key:
+            await self.db.delete(scoped_key)
+            await self.db.commit()
+            return True
+        return False
+
     async def reset_user_key(
         self,
         client_id: UUID,
@@ -180,7 +189,7 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
         permissions: list[ScopedKeyPermission] | None = None,
     ) -> tuple[ScopedKey, str]:
         """
-        Reset a user's API key by revoking the old one and creating a new one.
+        Reset a user's API key by deleting the old one and creating a new one.
 
         Args:
             client_id: The client ID
@@ -200,8 +209,10 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
                     ScopedKeyPermission(perm) for perm in existing_key.permissions
                 ]
 
-            # Revoke the old key
-            await self.revoke_scoped_key(existing_key.id)
+            # Delete the old key entirely to avoid unique constraint violation
+            # We need to delete and flush to ensure the constraint is released
+            await self.db.delete(existing_key)
+            await self.db.flush()  # Ensure delete is processed before insert
         else:
             # If no existing key, use default permissions
             if permissions is None:
@@ -210,9 +221,24 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
                     ScopedKeyPermission.SEND_MESSAGES,
                 ]
 
-        # Create new key
-        new_key, raw_key = await self.create_scoped_key(client_id, user_id, permissions)
-        return new_key, raw_key
+        # Generate secure scoped API key
+        raw_key = secrets.token_urlsafe(32)
+        hashed_key = hash_api_key(raw_key)
+
+        # Create new scoped key object
+        new_scoped_key = ScopedKey(
+            client_id=client_id,
+            user_id=user_id,
+            scoped_api_key=hashed_key,
+            permissions=[perm.value for perm in permissions],
+        )
+
+        # Add to database and commit both operations in same transaction
+        self.db.add(new_scoped_key)
+        await self.db.commit()
+        await self.db.refresh(new_scoped_key)
+
+        return new_scoped_key, raw_key
 
 
 def get_client_service(db: AsyncSession) -> ClientService:

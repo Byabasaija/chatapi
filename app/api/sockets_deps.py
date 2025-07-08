@@ -2,11 +2,17 @@
 
 from functools import wraps
 
-from app.api.deps import get_client_service, get_db_session_context, get_message_service
+from app.api.deps import (
+    get_client_service,
+    get_db_session_context,
+    get_message_service,
+    get_room_service,
+)
 
 SERVICE_GETTERS = {
     "client_service": get_client_service,
     "message_service": get_message_service,
+    "room_service": get_room_service,
 }
 
 
