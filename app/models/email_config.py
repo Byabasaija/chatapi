@@ -1,8 +1,17 @@
+from enum import Enum
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
+
+
+class EmailProviderType(str, Enum):
+    """Email provider types supported by the system."""
+
+    SMTP = "smtp"
+    MAILGUN = "mailgun"
 
 
 class ClientEmailConfig(Base):
