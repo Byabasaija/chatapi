@@ -20,6 +20,7 @@ from sqlalchemy.sql import func
 from app.db.base_class import Base
 
 if TYPE_CHECKING:
+    from app.models.email_config import ClientEmailConfig
     from app.models.room import Room
 
 
@@ -60,6 +61,9 @@ class Client(Base):
     )
     rooms: Mapped[list["Room"]] = relationship(
         "Room", back_populates="client", cascade="all, delete-orphan"
+    )
+    email_configs: Mapped[list["ClientEmailConfig"]] = relationship(
+        "ClientEmailConfig", back_populates="client", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
