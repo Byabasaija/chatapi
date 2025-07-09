@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from sqlalchemy import (
     JSON,
-    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -187,66 +186,4 @@ class NotificationDeliveryAttempt(Base):
         Index("ix_delivery_attempts_notification_id", "notification_id"),
         Index("ix_delivery_attempts_status", "status"),
         Index("ix_delivery_attempts_attempted_at", "attempted_at"),
-    )
-
-
-class NotificationTemplate(Base):
-    """
-    Optional template storage for clients who want to store reusable notification templates.
-    Note: This is optional - the system is designed to work with client-provided content.
-    """
-
-    __tablename__ = "notification_templates"
-
-    id: Mapped[str] = mapped_column(
-        PGUUID,
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
-
-    # Client association
-    client_id: Mapped[str] = mapped_column(
-        PGUUID, ForeignKey("clients.id"), nullable=False
-    )
-    client: Mapped["Client"] = relationship(
-        "Client", back_populates="notification_templates"
-    )
-
-    # Template details
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text)
-    notification_type: Mapped[NotificationType] = mapped_column(
-        String(20), nullable=False
-    )
-
-    # Template content
-    subject_template: Mapped[str | None] = mapped_column(String(255))
-    content_template: Mapped[str] = mapped_column(Text, nullable=False)
-    content_type: Mapped[str] = mapped_column(
-        String(50), default="text/plain", nullable=False
-    )
-
-    # Template variables schema (for validation)
-    variables_schema: Mapped[dict | None] = mapped_column(JSON)
-
-    # Status
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    # Indexes
-    __table_args__ = (
-        Index("ix_templates_client_id", "client_id"),
-        Index("ix_templates_name", "name"),
-        Index("ix_templates_type", "notification_type"),
     )

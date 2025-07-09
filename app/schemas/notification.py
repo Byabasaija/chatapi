@@ -120,52 +120,6 @@ class NotificationDeliveryAttemptRead(NotificationDeliveryAttemptBase):
     attempted_at: datetime
 
 
-# Template Schemas
-class NotificationTemplateBase(BaseModel):
-    """Base schema for notification templates."""
-
-    template_name: str = Field(..., max_length=100, description="Unique template name")
-    template_type: NotificationType
-    title_template: str = Field(..., description="Template for notification title")
-    content_template: str = Field(..., description="Template for notification content")
-    content_type: str = Field(default="text/plain")
-    description: str | None = None
-    variables: dict[str, str] | None = Field(
-        None, description="Available template variables"
-    )
-    is_active: bool = Field(default=True)
-
-
-class NotificationTemplateCreate(NotificationTemplateBase):
-    """Schema for creating notification templates."""
-
-    pass
-
-
-class NotificationTemplateUpdate(BaseModel):
-    """Schema for updating notification templates."""
-
-    title_template: str | None = None
-    content_template: str | None = None
-    content_type: str | None = None
-    description: str | None = None
-    variables: dict[str, str] | None = None
-    is_active: bool | None = None
-
-
-class NotificationTemplateRead(NotificationTemplateBase):
-    """Schema for reading notification templates."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    client_id: UUID
-    usage_count: int = 0
-    last_used_at: datetime | None = None
-    created_at: datetime
-    updated_at: datetime
-
-
 # Batch Operations
 class NotificationBatchCreate(BaseModel):
     """Schema for batch notification creation."""
