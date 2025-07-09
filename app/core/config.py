@@ -54,6 +54,28 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = ""
     CLIENT_KEY: str
 
+    # Redis and Celery Configuration
+    REDIS_URL: str = "redis://redis:6379/0"
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
+
+    # Notification Configuration
+    EMAIL_PROVIDER: str = "smtp"
+    BULK_EMAIL_PROVIDER: str = "mailgun"
+    BULK_SEND_THRESHOLD: int = 100  # 100+ recipients = use bulk provider
+
+    # Email Provider Settings (will be client-configurable)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+
+    # Mailgun Settings (system-wide)
+    MAILGUN_API_KEY: str = ""
+    MAILGUN_DOMAIN: str = ""
+    MAILGUN_BASE_URL: str = "https://api.mailgun.net/v3"
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:

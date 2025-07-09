@@ -1,7 +1,6 @@
-version: '3.7'
+version: "3.7"
 
 services:
-
   db:
     image: postgres:12
     restart: always
@@ -34,7 +33,7 @@ services:
       - "8080:8080"
 
   prestart:
-    image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
+    image: "${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}"
     build:
       context: ./
     networks:
@@ -58,7 +57,7 @@ services:
       - SENTRY_DSN=${SENTRY_DSN}
 
   api:
-    image: '${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}'
+    image: "${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}"
     restart: always
     networks:
       - default
@@ -66,6 +65,8 @@ services:
       db:
         condition: service_healthy
         restart: true
+      redis:
+        condition: service_healthy
       prestart:
         condition: service_completed_successfully
     env_file:
@@ -81,9 +82,15 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
     ports:
-      - "8000:8000"  # Exposing the Chat API on port 8000
+      - "8000:8000" # Exposing the Chat API on port 8000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8000/api/v1/utils/health-check/",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -96,6 +103,11 @@ services:
     networks:
       - default
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
@@ -103,22 +115,40 @@ services:
         max-file: "3"
     env_file:
       - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     build:
       context: ./
       dockerfile: celeryworker.dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
-  queue:
-    image: rabbitmq:3.11-management
+  celerybeat:
+    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
     networks:
       - default
     restart: unless-stopped
-    volumes:
-      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    command: celery -A app.core.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    build:
+      context: ./
+      dockerfile: celeryworker.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
 
 volumes:
   app-db-data:
+  redis-data:
 
 networks:
   default:
