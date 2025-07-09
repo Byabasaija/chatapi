@@ -52,11 +52,27 @@ class MessageService(BaseService[Message, MessageCreate, MessageUpdate]):
         await self.db.commit()
         await self.db.refresh(message)
 
-        # Update room's last message timestamp
+        # Check if room needs reactivation and update last message timestamp
         await self.db.execute(
             sqlalchemy.update(Room)
             .where(Room.id == room_id)
-            .values(last_message_at=sqlalchemy.func.now())
+            .values(
+                last_message_at=sqlalchemy.func.now(),
+                # Auto-reactivate if room was auto-deactivated
+                is_active=sqlalchemy.case(
+                    (Room.deactivated_reason == "auto_inactive", True),
+                    else_=Room.is_active,
+                ),
+                # Clear deactivation info if reactivating
+                deactivated_reason=sqlalchemy.case(
+                    (Room.deactivated_reason == "auto_inactive", None),
+                    else_=Room.deactivated_reason,
+                ),
+                deactivated_at=sqlalchemy.case(
+                    (Room.deactivated_reason == "auto_inactive", None),
+                    else_=Room.deactivated_at,
+                ),
+            )
         )
         await self.db.commit()
 

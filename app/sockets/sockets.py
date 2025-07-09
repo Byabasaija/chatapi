@@ -53,74 +53,72 @@ async def connect(
     user_id = auth["user_id"]
     display_name = auth.get("display_name", user_id)
 
-    try:
-        # Verify API key (master or scoped)
-        client = await client_service.verify_master_api_key(auth["api_key"])
-        scoped_key = None
+    # try:
+    # Verify API key (master or scoped)
+    client = await client_service.verify_master_api_key(auth["api_key"])
+    scoped_key = None
 
-        if not client:
-            # Try scoped key
-            result = await client_service.verify_scoped_api_key(auth["api_key"])
-            if result:
-                client, scoped_key = result
-            else:
-                await sio_server.disconnect(sid)
-                return False
+    if not client:
+        # Try scoped key
+        result = await client_service.verify_scoped_api_key(auth["api_key"])
+        if result:
+            client, scoped_key = result
+        else:
+            await sio_server.disconnect(sid)
+            return False
 
-        # Use scoped key user_id if available
-        if scoped_key:
-            user_id = scoped_key.user_id
-            display_name = scoped_key.user_id
+    # Use scoped key user_id if available
+    if scoped_key:
+        user_id = scoped_key.user_id
+        display_name = scoped_key.user_id
 
-        # Handle existing connection from same user within same client
-        connection_key = f"{client.id}:{user_id}"  # Scope by client + user
-        if connection_key in active_connections:
-            old_sid = active_connections[connection_key]
-            logger.info(
-                f"User {user_id} from client {client.id} reconnecting, disconnecting old session {old_sid}"
-            )
-            await sio_server.disconnect(old_sid)
-
-            # Clean up old session
-            session_users.pop(old_sid, None)
-            user_rooms.pop(old_sid, None)
-
-        # Store connection mappings with client context
-        active_connections[connection_key] = sid
-        session_users[sid] = {
-            "user_id": user_id,
-            "display_name": display_name,
-            "client_id": str(client.id),
-            "connection_key": connection_key,
-            "is_scoped": scoped_key is not None,
-        }
-        user_rooms[sid] = set()
-
-        # Join user to their rooms
-        await join_user_rooms(sid, user_id, client.id, room_service)
-        await notify_user_online(user_id, client.id)
-
+    # Handle existing connection from same user within same client
+    connection_key = f"{client.id}:{user_id}"  # Scope by client + user
+    if connection_key in active_connections:
+        old_sid = active_connections[connection_key]
         logger.info(
-            f"User {user_id} from client {client.id} connected with session {sid}"
+            f"User {user_id} from client {client.id} reconnecting, disconnecting old session {old_sid}"
         )
+        await sio_server.disconnect(old_sid)
 
-        # Send connection confirmation
-        await sio_server.emit(
-            "connected",
-            {
-                "user_id": user_id,
-                "client_id": str(client.id),
-                "display_name": display_name,
-            },
-            room=sid,
-        )
+        # Clean up old session
+        session_users.pop(old_sid, None)
+        user_rooms.pop(old_sid, None)
 
-        return True
+    # Store connection mappings with client context
+    active_connections[connection_key] = sid
+    session_users[sid] = {
+        "user_id": user_id,
+        "display_name": display_name,
+        "client_id": str(client.id),
+        "connection_key": connection_key,
+        "is_scoped": scoped_key is not None,
+    }
+    user_rooms[sid] = set()
 
-    except Exception as e:
-        logger.error(f"Error during connection for user {user_id}: {e}")
-        await sio_server.disconnect(sid)
-        return False
+    # Join user to their rooms
+    await join_user_rooms(sid, user_id, client.id, room_service)
+    await notify_user_online(user_id, client.id)
+
+    logger.info(f"User {user_id} from client {client.id} connected with session {sid}")
+
+    # Send connection confirmation
+    await sio_server.emit(
+        "connected",
+        {
+            "user_id": user_id,
+            "client_id": str(client.id),
+            "display_name": display_name,
+        },
+        room=sid,
+    )
+
+    return True
+
+    # except Exception as e:
+    #     logger.error(f"Error during connection for user {user_id}: {e}")
+    #     await sio_server.disconnect(sid)
+    #     return False
 
 
 @sio_server.event

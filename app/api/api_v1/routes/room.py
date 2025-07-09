@@ -385,3 +385,53 @@ async def get_member_role(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get member role: {str(e)}",
         )
+
+
+@router.get(
+    "/all", response_model=list[RoomRead], summary="Get all rooms for client (admin)"
+)
+async def get_all_client_rooms(
+    auth_client: AuthClientDep,
+    room_service: RoomServiceDep,
+):
+    """
+    Get all rooms for the client (requires master API key).
+
+    This endpoint returns ALL rooms associated with the client,
+    regardless of user membership. Also performs automatic cleanup
+    of inactive rooms based on room type settings.
+
+    Useful for:
+    - Admin dashboards
+    - Helpdesk systems
+    - Monitoring tools
+    - Analytics platforms
+
+    **Requires master API key authentication.**
+
+    **Room Inactivity Auto-Deactivation:**
+    - Direct messages: 90 days
+    - Group chats: 30 days
+    - Channels: 180 days
+    - Support rooms: 7 days
+    """
+    try:
+        client, scoped_key = auth_client
+
+        # Only master API keys can access all client rooms
+        if scoped_key:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This endpoint requires master API key authentication",
+            )
+
+        rooms = await room_service.get_all_client_rooms(client.id)
+        return rooms
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve client rooms: {str(e)}",
+        )

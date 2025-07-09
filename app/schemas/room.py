@@ -11,6 +11,7 @@ class RoomType(str, Enum):
     direct = "direct"
     group = "group"
     channel = "channel"
+    support = "support"
 
 
 class MemberRole(str, Enum):
@@ -52,6 +53,8 @@ class RoomRead(RoomBase):
     created_at: datetime
     updated_at: datetime
     last_message_at: datetime | None = None
+    deactivated_reason: str | None = None
+    deactivated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

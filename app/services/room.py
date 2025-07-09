@@ -164,6 +164,67 @@ class RoomService(BaseService[Room, RoomCreate, RoomUpdate]):
         role_str = result.scalar_one_or_none()
         return MemberRole(role_str) if role_str else None
 
+    async def get_all_client_rooms(self, client_id: UUID) -> list[Room]:
+        """Get all rooms for a client (admin view) with auto-deactivation check"""
+
+        # First, check and deactivate rooms that have been inactive too long
+        await self._check_and_deactivate_inactive_rooms(client_id)
+
+        # Then return all active rooms
+        result = await self.db.execute(
+            sqlalchemy.select(Room)
+            .where(Room.client_id == client_id)
+            .where(Room.is_active == True)  # noqa
+            .options(selectinload(Room.memberships))
+            .order_by(Room.last_message_at.desc().nullslast(), Room.created_at.desc())
+        )
+        return result.scalars().all()
+
+    async def _check_and_deactivate_inactive_rooms(self, client_id: UUID) -> int:
+        """Check and deactivate rooms that have been inactive for too long"""
+        from datetime import datetime, timedelta
+
+        from app.models.room import ROOM_INACTIVITY_SETTINGS
+
+        deactivated_count = 0
+        current_time = datetime.now()
+
+        # Get all active rooms for the client
+        result = await self.db.execute(
+            sqlalchemy.select(Room)
+            .where(Room.client_id == client_id)
+            .where(Room.is_active == True)  # noqa
+        )
+        rooms = result.scalars().all()
+
+        for room in rooms:
+            # Get inactivity threshold for this room type
+            inactivity_days = ROOM_INACTIVITY_SETTINGS.get(room.room_type, 30)
+            cutoff_date = current_time - timedelta(days=inactivity_days)
+
+            # Check if room should be deactivated
+            should_deactivate = False
+
+            if room.last_message_at is None:
+                # No messages ever sent - check creation date
+                if room.created_at < cutoff_date:
+                    should_deactivate = True
+            else:
+                # Check last message date
+                if room.last_message_at < cutoff_date:
+                    should_deactivate = True
+
+            if should_deactivate:
+                room.is_active = False
+                room.deactivated_reason = "auto_inactive"
+                room.deactivated_at = current_time
+                deactivated_count += 1
+
+        if deactivated_count > 0:
+            await self.db.commit()
+
+        return deactivated_count
+
 
 def get_room_service(db: AsyncSession) -> RoomService:
     return RoomService(db)

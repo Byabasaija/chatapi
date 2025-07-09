@@ -25,10 +25,20 @@ if TYPE_CHECKING:
     from app.models.message import Message
 
 
+# Room inactivity settings by room type (in days)
+ROOM_INACTIVITY_SETTINGS = {
+    "direct": 90,  # 3 months for direct messages
+    "group": 30,  # 1 month for group chats
+    "channel": 180,  # 6 months for channels
+    "support": 7,  # 1 week for support rooms
+}
+
+
 class RoomType(str, Enum):
     direct = "direct"  # 1-on-1 conversation
     group = "group"  # Group chat
     channel = "channel"  # Broadcast channel
+    support = "support"  # Support/helpdesk rooms
 
 
 class MemberRole(str, Enum):
@@ -67,6 +77,12 @@ class Room(Base):
         nullable=False,
     )
     last_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Auto-deactivation fields
+    deactivated_reason: Mapped[str | None] = mapped_column(
+        String(50)
+    )  # "manual", "auto_inactive", "expired"
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Relationships - use string references to avoid circular imports
     client: Mapped["Client"] = relationship("Client", back_populates="rooms")
