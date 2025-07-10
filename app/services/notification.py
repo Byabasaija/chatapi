@@ -242,6 +242,51 @@ class NotificationService(
         await self.db.refresh(attempt)
         return attempt
 
+    async def trigger_delivery(self, notification_id: UUID) -> bool:
+        """Trigger async delivery of a notification via Celery task."""
+        from app.workers.notification_tasks import process_notification
+
+        # Get the notification with its delivery attempts
+        notification = await self.get_with_delivery_attempts(notification_id)
+        if not notification:
+            return False
+
+        # Prepare notification data for the task
+        notification_data = {
+            "id": str(notification.id),
+            "type": notification.type,
+            "client_id": notification.client_id,
+            "subject": notification.subject,
+            "content": notification.content,
+            "metadata": notification.metadata,
+            "priority": notification.priority,
+            "status": notification.status,
+            "scheduled_at": notification.scheduled_at.isoformat()
+            if notification.scheduled_at
+            else None,
+            "to_email": notification.to_email,
+            "from_email": notification.from_email,
+            "reply_to": notification.reply_to,
+            "cc": notification.cc,
+            "bcc": notification.bcc,
+            "room_id": str(notification.room_id) if notification.room_id else None,
+            "target_client_id": str(notification.target_client_id)
+            if notification.target_client_id
+            else None,
+            "attempts": len(notification.delivery_attempts)
+            if notification.delivery_attempts
+            else 0,
+        }
+
+        # Update notification status to processing
+        await self.update_status(
+            notification_id=notification_id, status=NotificationStatus.PROCESSING
+        )
+
+        # Send to Celery
+        process_notification.delay(notification_data)
+        return True
+
 
 def get_notification_service(db: AsyncSession) -> NotificationService:
     """Factory function to create NotificationService instance."""

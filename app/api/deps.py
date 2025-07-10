@@ -10,6 +10,7 @@ from app.core.db import async_session_maker
 from app.models.client import Client, ScopedKey
 from app.services.client import ClientService, get_client_service
 from app.services.message import MessageService, get_message_service
+from app.services.notification import NotificationService, get_notification_service
 from app.services.room import RoomService, get_room_service
 
 
@@ -117,3 +118,12 @@ def get_room_service_dep(db: AsyncSessionDep) -> RoomService:
 
 
 RoomServiceDep = Annotated[RoomService, Depends(get_room_service_dep)]
+
+
+def get_notification_service_dep(db: AsyncSessionDep) -> NotificationService:
+    return get_notification_service(db)
+
+
+NotificationServiceDep = Annotated[
+    NotificationService, Depends(get_notification_service_dep)
+]
