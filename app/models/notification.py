@@ -28,8 +28,7 @@ class NotificationType(str, Enum):
 
     EMAIL = "email"
     WEBSOCKET = "websocket"
-    WEBHOOK = "webhook"
-    SMS = "sms"  # Future extension
+    # SMS = "sms"  # Future extension
 
 
 class NotificationStatus(str, Enum):

@@ -1,6 +1,13 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
-from app.models.email_config import EmailProviderType
+
+class EmailProviderType(str, Enum):
+    """Email provider types supported by the system."""
+
+    SMTP = "smtp"
+    MAILGUN = "mailgun"
 
 
 # Simple email sending request (pure relay model)
