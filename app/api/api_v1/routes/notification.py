@@ -25,7 +25,7 @@ class SendNotificationRequest(BaseModel):
     subject: str
     content: str
     priority: NotificationPriority = NotificationPriority.normal
-    metadata: dict = {}
+    meta: dict = {}
     scheduled_for: str | None = None  # ISO datetime string
 
     # Email-specific fields
@@ -62,7 +62,7 @@ async def send_notification(
     """
     Send a new notification.
 
-    Supports email and WebSocket notifications with appropriate metadata.
+    Supports email and WebSocket notifications with appropriate meta.
     """
     try:
         client, scoped_key = auth_client
@@ -73,7 +73,7 @@ async def send_notification(
             subject=request.subject,
             content=request.content,
             priority=request.priority,
-            metadata=request.metadata,
+            meta=request.meta,
             scheduled_for=request.scheduled_for,
             to_email=request.to_email,
             from_email=request.from_email,

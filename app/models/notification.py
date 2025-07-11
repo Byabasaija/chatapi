@@ -81,7 +81,7 @@ class Notification(Base):
     # Content
     subject: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    metadata: Mapped[dict | None] = mapped_column(JSON)
+    meta: Mapped[dict | None] = mapped_column(JSON)
 
     # Email-specific fields
     to_email: Mapped[str | None] = mapped_column(String(255))

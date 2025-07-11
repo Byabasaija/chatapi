@@ -30,7 +30,7 @@ def check_room_has_online_users(room_id: UUID) -> bool:
 async def send_websocket_notification(
     content: str,
     subject: str | None = None,
-    metadata: dict | None = None,
+    meta: dict | None = None,
     room_id: UUID | None = None,
     notification_type: str = NotificationType.WEBSOCKET,
 ) -> dict[str, Any]:
@@ -40,7 +40,7 @@ async def send_websocket_notification(
     Args:
         content: The notification content/message
         subject: Optional notification subject/title
-        metadata: Optional additional data to include
+        meta: Optional additional data to include
         room_id: Room ID to send to (required)
         notification_type: The type of notification (default: websocket)
 
@@ -59,8 +59,8 @@ async def send_websocket_notification(
         if subject:
             notification_data["subject"] = subject
 
-        if metadata:
-            notification_data["metadata"] = metadata
+        if meta:
+            notification_data["meta"] = meta
 
         # Determine target - only room-based notifications supported
         result = {

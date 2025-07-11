@@ -184,7 +184,7 @@ async def update_email_providers(
     current_client: AuthClientDep,
     client_service: ClientServiceDep,
 ):
-    """Update email provider configurations for a client."""
+    """Create or Update email provider configurations for a client."""
 
     # Ensure client can only update their own providers
     if str(current_client.id) != str(client_id):

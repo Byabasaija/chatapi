@@ -172,7 +172,7 @@ async def process_email_notification(
             "reply_to": notification_data.get("reply_to"),
             "cc": notification_data.get("cc", []),
             "bcc": notification_data.get("bcc", []),
-            "metadata": notification_data.get("metadata", {}),
+            "meta": notification_data.get("meta", {}),
         }
 
         # Create recipient count to determine provider
@@ -317,7 +317,7 @@ async def process_websocket_notification(
         room_id = notification_data.get("room_id")
         content = notification_data.get("content")
         subject = notification_data.get("subject")
-        metadata = notification_data.get("metadata", {})
+        meta = notification_data.get("meta", {})
         email_fallback = notification_data.get("email_fallback")
 
         # Validate required fields
@@ -357,7 +357,7 @@ async def process_websocket_notification(
             ws_result = await send_websocket_notification(
                 content=content,
                 subject=subject,
-                metadata=metadata,
+                meta=meta,
                 room_id=uuid_room_id,
             )
 
@@ -395,8 +395,8 @@ async def process_websocket_notification(
                 "reply_to": email_fallback.get("reply_to"),
                 "cc": email_fallback.get("cc", []),
                 "bcc": email_fallback.get("bcc", []),
-                "metadata": {
-                    **metadata,
+                "meta": {
+                    **meta,
                     "fallback_reason": "websocket_delivery_failed"
                     if not success
                     else "no_online_users",

@@ -260,7 +260,7 @@ class NotificationService(
             "client_id": notification.client_id,
             "subject": notification.subject,
             "content": notification.content,
-            "metadata": notification.metadata,
+            "meta": notification.meta,
             "priority": notification.priority,
             "status": notification.status,
             "scheduled_at": notification.scheduled_at.isoformat()

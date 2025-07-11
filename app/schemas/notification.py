@@ -19,7 +19,7 @@ class NotificationBase(BaseModel):
     subject: str = Field(..., max_length=255, description="Notification subject")
     content: str = Field(..., description="Notification content/body")
     priority: NotificationPriority = Field(default=NotificationPriority.NORMAL)
-    metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    meta: dict[str, Any] | None = Field(None, description="Additional metadata")
     scheduled_for: datetime | None = Field(
         None, description="Schedule notification for future delivery"
     )
@@ -79,7 +79,7 @@ class NotificationUpdate(BaseModel):
     content: str | None = None
     priority: NotificationPriority | None = None
     scheduled_for: datetime | None = None
-    metadata: dict[str, Any] | None = None
+    meta: dict[str, Any] | None = None
     max_retry_attempts: int | None = Field(None, ge=0, le=10)
 
 
