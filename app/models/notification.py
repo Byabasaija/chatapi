@@ -73,25 +73,28 @@ class Notification(Base):
     client: Mapped["Client"] = relationship("Client", back_populates="notifications")
 
     # Notification configuration
-    notification_type: Mapped[NotificationType] = mapped_column(
-        String(20), nullable=False
-    )
+    type: Mapped[NotificationType] = mapped_column(String(20), nullable=False)
     priority: Mapped[NotificationPriority] = mapped_column(
         String(10), default=NotificationPriority.NORMAL, nullable=False
     )
 
-    # Content and metadata
-    subject: Mapped[str | None] = mapped_column(String(255))
+    # Content
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    content_type: Mapped[str] = mapped_column(
-        String(50), default="text/plain", nullable=False
-    )  # text/plain, text/html, application/json
+    metadata: Mapped[dict | None] = mapped_column(JSON)
 
-    # Recipients (can be email addresses, user IDs, webhook URLs, etc.)
-    recipients: Mapped[list] = mapped_column(JSON, nullable=False)
+    # Email-specific fields
+    to_email: Mapped[str | None] = mapped_column(String(255))
+    from_email: Mapped[str | None] = mapped_column(String(255))
+    reply_to: Mapped[str | None] = mapped_column(String(255))
+    cc: Mapped[list | None] = mapped_column(JSON)
+    bcc: Mapped[list | None] = mapped_column(JSON)
 
-    # Additional metadata for processing
-    meta: Mapped[dict | None] = mapped_column(JSON)
+    # WebSocket-specific fields
+    room_id: Mapped[str | None] = mapped_column(PGUUID)
+
+    # Email fallback for WebSocket notifications
+    email_fallback: Mapped[dict | None] = mapped_column(JSON)
 
     # Delivery configuration
     max_retry_attempts: Mapped[int] = mapped_column(Integer, default=3, nullable=False)

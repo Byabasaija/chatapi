@@ -288,15 +288,15 @@ async def process_email_notification(
 async def process_websocket_notification(
     notification_data: dict[str, Any], session: AsyncSession
 ) -> dict[str, Any]:
-    """Process a WebSocket notification."""
+    """Process a WebSocket notification with automatic email fallback."""
     try:
         # Extract WebSocket data
         notification_id = notification_data.get("id")
         room_id = notification_data.get("room_id")
-        target_client_id = notification_data.get("target_client_id")
         content = notification_data.get("content")
         subject = notification_data.get("subject")
         metadata = notification_data.get("metadata", {})
+        email_fallback = notification_data.get("email_fallback")
 
         # Validate required fields
         if not content:
@@ -305,18 +305,23 @@ async def process_websocket_notification(
                 "error": "Missing required content for WebSocket notification",
             }
 
-        if not (room_id or target_client_id):
+        if not room_id:
             return {
                 "status": "error",
-                "error": "WebSocket notification requires either room_id or target_client_id",
+                "error": "WebSocket notification requires room_id",
             }
 
-        # Import the WebSocket utility here to avoid circular imports
-        from app.sockets.notification_utils import send_websocket_notification
+        # Import utilities here to avoid circular imports
+        from app.sockets.notification_utils import (
+            send_websocket_notification,
+            check_room_has_online_users,
+        )
 
         # Convert UUID strings to UUID objects if needed
         uuid_room_id = UUID(room_id) if room_id else None
-        uuid_target_client_id = UUID(target_client_id) if target_client_id else None
+
+        # Check if room has online users before attempting WebSocket delivery
+        has_online_users = check_room_has_online_users(uuid_room_id)
 
         # Send the WebSocket notification
         ws_result = await send_websocket_notification(
@@ -324,7 +329,6 @@ async def process_websocket_notification(
             subject=subject,
             metadata=metadata,
             room_id=uuid_room_id,
-            target_client_id=uuid_target_client_id,
         )
 
         # Record delivery attempt
@@ -344,12 +348,59 @@ async def process_websocket_notification(
             response_time_ms=10,  # WebSocket delivery is typically fast
         )
 
+        # Check if we should attempt email fallback
+        should_fallback = email_fallback and (not success or not has_online_users)
+
+        if should_fallback:
+            logger.info(f"Attempting email fallback for notification {notification_id}")
+
+            # Prepare email fallback data
+            email_data = {
+                "id": notification_id,
+                "type": "email",
+                "to_email": email_fallback.get("to_email"),
+                "subject": email_fallback.get("subject", subject),
+                "content": email_fallback.get("content", content),
+                "from_email": email_fallback.get("from_email"),
+                "reply_to": email_fallback.get("reply_to"),
+                "cc": email_fallback.get("cc", []),
+                "bcc": email_fallback.get("bcc", []),
+                "metadata": {
+                    **metadata,
+                    "fallback_reason": "websocket_delivery_failed"
+                    if not success
+                    else "no_online_users",
+                },
+                "attempts": notification_data.get("attempts", 0) + 1,
+            }
+
+            # Process email fallback
+            email_result = await process_email_notification(email_data, session)
+
+            if email_result.get("status") == "success":
+                return {
+                    "status": "success",
+                    "websocket_result": ws_result,
+                    "email_fallback_used": True,
+                    "email_result": email_result,
+                    "target": f"room:{room_id}",
+                    "delivered_to": ws_result.get("delivered_to", []),
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            else:
+                # WebSocket failed and email fallback also failed
+                return {
+                    "status": "error",
+                    "error": f"WebSocket delivery failed: {', '.join(ws_result.get('errors', []))}. Email fallback also failed: {email_result.get('error', 'Unknown error')}",
+                    "websocket_result": ws_result,
+                    "email_fallback_result": email_result,
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+
         if success:
             return {
                 "status": "success",
-                "target": f"room:{room_id}"
-                if room_id
-                else f"client:{target_client_id}",
+                "target": f"room:{room_id}",
                 "delivered_to": ws_result.get("delivered_to", []),
                 "timestamp": datetime.utcnow().isoformat(),
             }

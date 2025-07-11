@@ -37,7 +37,11 @@ class SendNotificationRequest(BaseModel):
 
     # WebSocket-specific fields
     room_id: UUID | None = None
-    target_client_id: UUID | None = None
+
+    # Email fallback for WebSocket notifications
+    email_fallback: dict | None = (
+        None  # {"to_email": "user@example.com", "subject": "..."}
+    )
 
 
 class NotificationResponse(BaseModel):
@@ -77,7 +81,7 @@ async def send_notification(
             cc=request.cc,
             bcc=request.bcc,
             room_id=request.room_id,
-            target_client_id=request.target_client_id,
+            email_fallback=request.email_fallback,
         )
 
         # Create the notification

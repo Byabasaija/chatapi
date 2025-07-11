@@ -15,53 +15,61 @@ from app.models.notification import (
 class NotificationBase(BaseModel):
     """Base schema for notifications."""
 
-    notification_type: NotificationType
-    title: str = Field(..., max_length=255, description="Notification title")
+    type: NotificationType
+    subject: str = Field(..., max_length=255, description="Notification subject")
     content: str = Field(..., description="Notification content/body")
-    content_type: str = Field(default="text/plain", description="Content MIME type")
-    recipients: list[str] = Field(
-        ..., description="List of recipients (emails, user IDs, etc.)"
-    )
     priority: NotificationPriority = Field(default=NotificationPriority.NORMAL)
+    metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
     scheduled_for: datetime | None = Field(
         None, description="Schedule notification for future delivery"
     )
-    meta: dict[str, Any] | None = Field(None, description="Additional metadata")
+
+    # Email-specific fields
+    to_email: str | None = None
+    from_email: str | None = None
+    reply_to: str | None = None
+    cc: list[str] | None = None
+    bcc: list[str] | None = None
+
+    # WebSocket-specific fields
+    room_id: UUID | None = None
+
+    # Email fallback for WebSocket notifications
+    email_fallback: dict[str, Any] | None = None
+
     max_retry_attempts: int = Field(default=3, ge=0, le=10)
 
 
 class NotificationCreate(NotificationBase):
     """Schema for creating notifications."""
 
-    @validator("recipients")
-    def validate_recipients(cls, v, values):
-        if not v:
-            raise ValueError("At least one recipient is required")
-
-        notification_type = values.get("notification_type")
-        if notification_type == NotificationType.EMAIL:
-            # For email notifications, validate email format
-            for recipient in v:
-                if "@" not in recipient:
-                    raise ValueError(f"Invalid email format: {recipient}")
+    @validator("to_email")
+    def validate_email(cls, v):
+        if v and "@" not in v:
+            raise ValueError(f"Invalid email format: {v}")
         return v
 
-    @validator("content_type")
-    def validate_content_type(cls, v):
-        allowed_types = ["text/plain", "text/html", "application/json"]
-        if v not in allowed_types:
-            raise ValueError(f"Content type must be one of: {allowed_types}")
+    @validator("type")
+    def validate_notification_fields(cls, v, values):
+        if v == NotificationType.EMAIL:
+            to_email = values.get("to_email")
+            if not to_email:
+                raise ValueError("to_email is required for email notifications")
+        elif v == NotificationType.WEBSOCKET:
+            room_id = values.get("room_id")
+            if not room_id:
+                raise ValueError("room_id is required for WebSocket notifications")
         return v
 
 
 class NotificationUpdate(BaseModel):
     """Schema for updating notifications."""
 
-    title: str | None = Field(None, max_length=255)
+    subject: str | None = Field(None, max_length=255)
     content: str | None = None
     priority: NotificationPriority | None = None
     scheduled_for: datetime | None = None
-    meta: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
     max_retry_attempts: int | None = Field(None, ge=0, le=10)
 
 

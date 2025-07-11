@@ -270,9 +270,7 @@ class NotificationService(
             "cc": notification.cc,
             "bcc": notification.bcc,
             "room_id": str(notification.room_id) if notification.room_id else None,
-            "target_client_id": str(notification.target_client_id)
-            if notification.target_client_id
-            else None,
+            "email_fallback": notification.email_fallback,
             "attempts": len(notification.delivery_attempts)
             if notification.delivery_attempts
             else 0,
