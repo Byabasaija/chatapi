@@ -1,6 +1,7 @@
 from enum import Enum
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class EmailProviderType(str, Enum):
@@ -17,6 +18,7 @@ class EmailProviderType(str, Enum):
 class SMTPConfig(BaseModel):
     """SMTP provider configuration."""
 
+    provider_type: Literal["smtp"] = "smtp"
     host: str
     port: int = 587
     username: str
@@ -28,6 +30,7 @@ class SMTPConfig(BaseModel):
 class MailgunConfig(BaseModel):
     """Mailgun provider configuration."""
 
+    provider_type: Literal["mailgun"] = "mailgun"
     api_key: str
     domain: str
     base_url: str = "https://api.mailgun.net/v3"
@@ -36,38 +39,54 @@ class MailgunConfig(BaseModel):
 class SendGridConfig(BaseModel):
     """SendGrid provider configuration."""
 
+    provider_type: Literal["sendgrid"] = "sendgrid"
     api_key: str
-    from_email: str
-    from_name: str | None = None
 
 
 class PostmarkConfig(BaseModel):
     """Postmark provider configuration."""
 
+    provider_type: Literal["postmark"] = "postmark"
     server_token: str
-    from_email: str
 
 
 class SESConfig(BaseModel):
     """AWS SES provider configuration."""
 
+    provider_type: Literal["ses"] = "ses"
     aws_access_key_id: str
     aws_secret_access_key: str
     region: str = "us-east-1"
-    from_email: str
 
 
-class EmailProviderConfig(BaseModel):
-    """Unified email provider configuration."""
+# Discriminated union for provider configs
+EmailProviderConfig = (
+    SMTPConfig | MailgunConfig | SendGridConfig | PostmarkConfig | SESConfig
+)
 
-    provider_type: EmailProviderType
-    config: (SMTPConfig | MailgunConfig | SendGridConfig | PostmarkConfig | SESConfig)
 
-    # Optional settings
-    max_recipients: int = 100  # Provider's bulk limit
-    rate_limit_per_second: int = 10  # Sending rate limit
-    is_primary: bool = False  # Use for single sends
-    is_bulk: bool = True  # Use for bulk sends
+# Client provider configuration (what gets stored in database)
+class ClientEmailProvider(BaseModel):
+    """Client's email provider configuration - stored in database."""
+
+    provider_config: EmailProviderConfig = Field(..., discriminator="provider_type")
+
+    # Client preferences (not provider limits)
+    is_primary: bool = False  # Use for single recipient emails
+    is_bulk: bool = True  # Use for bulk emails
+    default_from_email: str  # Required fallback sender
+    default_from_name: str | None = None
+
+    @model_validator(mode="after")
+    def validate_config(self):
+        """Validate provider-specific requirements."""
+        config = self.provider_config
+
+        # Provider-specific validations
+        if config.provider_type == "smtp" and config.port not in [25, 465, 587, 2525]:
+            raise ValueError("SMTP port must be 25, 465, 587, or 2525")
+
+        return self
 
 
 # Simple email sending request (pure relay model)
@@ -106,4 +125,21 @@ class EmailProviderInfo(BaseModel):
 
     smtp_configured: bool = False
     mailgun_configured: bool = False
+    sendgrid_configured: bool = False
+    postmark_configured: bool = False
+    ses_configured: bool = False
     default_provider: EmailProviderType = EmailProviderType.SMTP
+
+
+# Utility functions
+def is_bulk_send(recipient_count: int) -> bool:
+    """Determine if this should be treated as a bulk send.
+
+    Simple rule: 1 recipient = transactional, 2+ recipients = bulk
+    """
+    return recipient_count > 1
+
+
+def should_use_bulk_provider(recipient_count: int) -> bool:
+    """Alias for is_bulk_send for clarity."""
+    return is_bulk_send(recipient_count)
