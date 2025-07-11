@@ -6,6 +6,9 @@ from app.schemas.email_config import EmailProviderType
 
 from .base import BaseEmailProvider
 from .mailgun import MailgunProvider
+from .postmark import PostmarkProvider
+from .sendgrid import SendGridProvider
+from .ses import SESProvider
 from .smtp import SMTPProvider
 
 logger = logging.getLogger(__name__)
@@ -18,6 +21,9 @@ class EmailProviderFactory:
     _providers = {
         EmailProviderType.SMTP: SMTPProvider,
         EmailProviderType.MAILGUN: MailgunProvider,
+        EmailProviderType.SENDGRID: SendGridProvider,
+        EmailProviderType.POSTMARK: PostmarkProvider,
+        EmailProviderType.SES: SESProvider,
     }
 
     @classmethod
@@ -53,12 +59,57 @@ class EmailProviderFactory:
         """Register a new provider type (for extensibility)."""
         cls._providers[provider_type] = provider_class
 
+    @classmethod
+    def get_default_system_configs(cls) -> list[dict[str, Any]]:
+        """Get default system provider configurations from environment variables."""
+        configs = []
 
-class EmailProviderConfig:
-    """Manages email provider configuration from environment variables."""
+        # SMTP configuration
+        smtp_config = cls._get_smtp_env_config()
+        if smtp_config and smtp_config.get("host"):
+            configs.append(
+                {
+                    "provider_type": "smtp",
+                    "config": smtp_config,
+                    "is_primary": True,
+                    "is_bulk": False,
+                    "max_recipients": 10,
+                    "rate_limit_per_second": 5,
+                }
+            )
 
-    @staticmethod
-    def get_smtp_config() -> dict[str, Any]:
+        # Mailgun configuration
+        mailgun_config = cls._get_mailgun_env_config()
+        if mailgun_config and mailgun_config.get("api_key"):
+            configs.append(
+                {
+                    "provider_type": "mailgun",
+                    "config": mailgun_config,
+                    "is_primary": len(configs) == 0,  # Primary if no SMTP
+                    "is_bulk": True,
+                    "max_recipients": 1000,
+                    "rate_limit_per_second": 100,
+                }
+            )
+
+        # SendGrid configuration
+        sendgrid_config = cls._get_sendgrid_env_config()
+        if sendgrid_config and sendgrid_config.get("api_key"):
+            configs.append(
+                {
+                    "provider_type": "sendgrid",
+                    "config": sendgrid_config,
+                    "is_primary": len(configs) == 0,  # Primary if no other providers
+                    "is_bulk": True,
+                    "max_recipients": 1000,
+                    "rate_limit_per_second": 100,
+                }
+            )
+
+        return configs
+
+    @classmethod
+    def _get_smtp_env_config(cls) -> dict[str, Any]:
         """Get SMTP configuration from environment variables."""
         return {
             "host": os.getenv("SMTP_HOST"),
@@ -68,125 +119,148 @@ class EmailProviderConfig:
             "use_tls": os.getenv("SMTP_USE_TLS", "true").lower() == "true",
             "use_ssl": os.getenv("SMTP_USE_SSL", "false").lower() == "true",
             "from_email": os.getenv("SMTP_FROM_EMAIL"),
-            "from_name": os.getenv("SMTP_FROM_NAME"),
+            "from_name": os.getenv("SMTP_FROM_NAME", "ChatAPI"),
         }
 
-    @staticmethod
-    def get_mailgun_config() -> dict[str, Any]:
+    @classmethod
+    def _get_mailgun_env_config(cls) -> dict[str, Any]:
         """Get Mailgun configuration from environment variables."""
         return {
             "api_key": os.getenv("MAILGUN_API_KEY"),
             "domain": os.getenv("MAILGUN_DOMAIN"),
             "base_url": os.getenv("MAILGUN_BASE_URL", "https://api.mailgun.net/v3"),
             "from_email": os.getenv("MAILGUN_FROM_EMAIL"),
-            "from_name": os.getenv("MAILGUN_FROM_NAME"),
+            "from_name": os.getenv("MAILGUN_FROM_NAME", "ChatAPI"),
         }
 
-    @staticmethod
-    def get_provider_config(provider_type: EmailProviderType) -> dict[str, Any]:
-        """Get configuration for specific provider type."""
-        if provider_type == EmailProviderType.SMTP:
-            return EmailProviderConfig.get_smtp_config()
-        elif provider_type == EmailProviderType.MAILGUN:
-            return EmailProviderConfig.get_mailgun_config()
-        else:
-            raise ValueError(f"Unknown provider type: {provider_type}")
+    @classmethod
+    def _get_sendgrid_env_config(cls) -> dict[str, Any]:
+        """Get SendGrid configuration from environment variables."""
+        return {
+            "api_key": os.getenv("SENDGRID_API_KEY"),
+            "from_email": os.getenv("SENDGRID_FROM_EMAIL"),
+            "from_name": os.getenv("SENDGRID_FROM_NAME", "ChatAPI"),
+        }
 
 
 class EmailProviderManager:
-    """Manages multiple email providers and handles routing logic."""
+    """Manages email providers with client-provided configurations."""
 
-    def __init__(self):
-        self.providers: dict[EmailProviderType, BaseEmailProvider] = {}
-        self.primary_provider: EmailProviderType | None = None
-        self.fallback_provider: EmailProviderType | None = None
+    def __init__(self, provider_configs: list[dict] = None):
+        """
+        Initialize with client-provided provider configurations.
+
+        Args:
+            provider_configs: List of provider config dicts like:
+            [
+                {
+                    "provider_type": "smtp",
+                    "config": {"host": "smtp.gmail.com", ...},
+                    "is_primary": True,
+                    "is_bulk": False,
+                    "max_recipients": 1,
+                    "rate_limit_per_second": 2
+                },
+                {
+                    "provider_type": "sendgrid",
+                    "config": {"api_key": "...", ...},
+                    "is_primary": False,
+                    "is_bulk": True,
+                    "max_recipients": 1000,
+                    "rate_limit_per_second": 100
+                }
+            ]
+        """
+        self.providers: dict[str, BaseEmailProvider] = {}
+        self.provider_configs = provider_configs or []
+        self._initialized = False
 
     async def initialize_providers(self):
-        """Initialize all configured providers."""
-        # Try to initialize SMTP provider
-        try:
-            smtp_config = EmailProviderConfig.get_smtp_config()
-            smtp_provider = EmailProviderFactory.create_provider(
-                EmailProviderType.SMTP, smtp_config
-            )
+        """Initialize providers from client configs or system defaults."""
+        if self._initialized:
+            return
 
-            if smtp_provider.is_configured():
-                if await smtp_provider.verify_configuration():
-                    self.providers[EmailProviderType.SMTP] = smtp_provider
-                    if not self.primary_provider:
-                        self.primary_provider = EmailProviderType.SMTP
-                    logger.info("SMTP provider initialized successfully")
-                else:
-                    logger.warning("SMTP provider configuration verification failed")
-            else:
-                logger.info("SMTP provider not configured")
+        # Use client configs if provided, otherwise fall back to system defaults
+        configs_to_use = self.provider_configs
+        if not configs_to_use:
+            configs_to_use = EmailProviderFactory.get_default_system_configs()
+            logger.info("No client provider configs found, using system defaults")
 
-        except Exception as e:
-            logger.error(f"Failed to initialize SMTP provider: {str(e)}")
+        if not configs_to_use:
+            logger.warning("No provider configurations available (client or system)")
+            self._initialized = True
+            return
 
-        # Try to initialize Mailgun provider
-        try:
-            mailgun_config = EmailProviderConfig.get_mailgun_config()
-            mailgun_provider = EmailProviderFactory.create_provider(
-                EmailProviderType.MAILGUN, mailgun_config
-            )
+        for config in configs_to_use:
+            try:
+                provider_type = EmailProviderType(config["provider_type"])
+                provider = EmailProviderFactory.create_provider(
+                    provider_type, config["config"]
+                )
 
-            if mailgun_provider.is_configured():
-                if await mailgun_provider.verify_configuration():
-                    self.providers[EmailProviderType.MAILGUN] = mailgun_provider
-                    # Mailgun is preferred for bulk/reliability
-                    self.primary_provider = EmailProviderType.MAILGUN
-                    if EmailProviderType.SMTP in self.providers:
-                        self.fallback_provider = EmailProviderType.SMTP
-                    logger.info("Mailgun provider initialized successfully")
-                else:
-                    logger.warning("Mailgun provider configuration verification failed")
-            else:
-                logger.info("Mailgun provider not configured")
+                # Store with metadata
+                provider._is_primary = config.get("is_primary", False)
+                provider._is_bulk = config.get("is_bulk", True)
+                provider._max_recipients = config.get("max_recipients", 100)
+                provider._rate_limit_per_second = config.get(
+                    "rate_limit_per_second", 10
+                )
 
-        except Exception as e:
-            logger.error(f"Failed to initialize Mailgun provider: {str(e)}")
+                # Validate provider configuration
+                validation_result = await provider.validate_config()
+                if not validation_result.get("valid", False):
+                    logger.warning(
+                        f"Provider {provider_type} failed validation: "
+                        f"{validation_result.get('error', 'Unknown error')}"
+                    )
+                    continue
 
-        if not self.providers:
-            logger.error("No email providers could be initialized!")
-            raise RuntimeError("No email providers available")
+                self.providers[config["provider_type"]] = provider
+                logger.info(f"Initialized {provider_type} provider successfully")
 
-        logger.info(f"Email providers initialized: {list(self.providers.keys())}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to initialize provider {config.get('provider_type')}: {e}"
+                )
+
+        self._initialized = True
         logger.info(
-            f"Primary provider: {self.primary_provider}, Fallback: {self.fallback_provider}"
+            f"Email provider manager initialized with {len(self.providers)} providers"
         )
 
     def get_provider_for_sending(
         self, recipient_count: int = 1
     ) -> BaseEmailProvider | None:
-        """
-        Get the best provider for sending based on routing logic.
+        """Get appropriate provider based on recipient count and configuration."""
+        if not self.providers:
+            logger.warning("No email providers available")
+            return None
 
-        Args:
-            recipient_count: Number of recipients (for bulk vs transactional routing)
+        # For single/few recipients, prefer primary provider
+        if recipient_count <= 5:
+            for provider in self.providers.values():
+                if getattr(
+                    provider, "_is_primary", False
+                ) and recipient_count <= getattr(provider, "_max_recipients", 100):
+                    return provider
 
-        Returns:
-            Best available provider or None if no providers available
-        """
-        # Simple routing logic:
-        # - Use Mailgun for bulk sends (>10 recipients) if available
-        # - Use primary provider for normal sends
-        # - Fall back to secondary if primary fails
+        # For bulk, find suitable bulk provider
+        for provider in self.providers.values():
+            if getattr(provider, "_is_bulk", True) and recipient_count <= getattr(
+                provider, "_max_recipients", 100
+            ):
+                return provider
 
-        if recipient_count > 10 and EmailProviderType.MAILGUN in self.providers:
-            return self.providers[EmailProviderType.MAILGUN]
+        # Fallback to any available provider that can handle the load
+        for provider in self.providers.values():
+            if recipient_count <= getattr(provider, "_max_recipients", 100):
+                return provider
 
-        if self.primary_provider and self.primary_provider in self.providers:
-            return self.providers[self.primary_provider]
-
-        # Return any available provider
-        if self.providers:
-            return next(iter(self.providers.values()))
-
+        logger.warning(f"No provider can handle {recipient_count} recipients")
         return None
 
     def get_fallback_provider(
-        self, failed_provider_type: EmailProviderType
+        self, failed_provider_type: str
     ) -> BaseEmailProvider | None:
         """Get fallback provider when primary fails."""
         for provider_type, provider in self.providers.items():
@@ -196,9 +270,33 @@ class EmailProviderManager:
 
     def get_provider_status(self) -> dict[str, Any]:
         """Get status of all providers."""
-        return {
-            "providers": list(self.providers.keys()),
-            "primary": self.primary_provider,
-            "fallback": self.fallback_provider,
+        status = {
+            "initialized": self._initialized,
             "total_providers": len(self.providers),
+            "providers": {},
         }
+
+        for provider_type, provider in self.providers.items():
+            status["providers"][provider_type] = {
+                "is_primary": getattr(provider, "_is_primary", False),
+                "is_bulk": getattr(provider, "_is_bulk", True),
+                "max_recipients": getattr(provider, "_max_recipients", 100),
+                "rate_limit_per_second": getattr(
+                    provider, "_rate_limit_per_second", 10
+                ),
+            }
+
+        return status
+
+    async def validate_all_providers(self) -> dict[str, dict[str, Any]]:
+        """Validate configuration of all providers."""
+        results = {}
+        for provider_type, provider in self.providers.items():
+            try:
+                results[provider_type] = await provider.validate_config()
+            except Exception as e:
+                results[provider_type] = {
+                    "valid": False,
+                    "error": f"Validation exception: {str(e)}",
+                }
+        return results

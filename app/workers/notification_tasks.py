@@ -182,14 +182,36 @@ async def process_email_notification(
         if email_data.get("bcc"):
             recipient_count += len(email_data["bcc"])
 
-        # Initialize email provider manager
-        provider_manager = EmailProviderManager()
-        await provider_manager.initialize_providers()
+        # Initialize email provider manager for this client
+        notification_service = get_notification_service(session)
+        client_id = notification_data.get("client_id")
+        if not client_id:
+            return {
+                "status": "error",
+                "error": "Missing client_id in notification data",
+            }
+
+        # Check if notification has a specific provider config
+        provider_config = notification_data.get("provider_config")
+        if provider_config:
+            # Use notification-specific provider config
+            provider_manager = EmailProviderManager([provider_config])
+            await provider_manager.initialize_providers()
+        else:
+            # Use client's stored provider configs
+            provider_manager = (
+                await notification_service.get_client_email_provider_manager(
+                    UUID(client_id)
+                )
+            )
 
         # Get appropriate provider
         provider = provider_manager.get_provider_for_sending(recipient_count)
         if not provider:
-            return {"status": "error", "error": "No email provider available"}
+            return {
+                "status": "error",
+                "error": f"No email provider configured for client {client_id}",
+            }
 
         # Send email
         provider_name = provider.__class__.__name__
@@ -305,31 +327,39 @@ async def process_websocket_notification(
                 "error": "Missing required content for WebSocket notification",
             }
 
-        if not room_id:
+        # Check if we have either room_id or email_fallback
+        if not room_id and not email_fallback:
             return {
                 "status": "error",
-                "error": "WebSocket notification requires room_id",
+                "error": "WebSocket notification requires either room_id or email_fallback",
             }
 
         # Import utilities here to avoid circular imports
         from app.sockets.notification_utils import (
             send_websocket_notification,
             check_room_has_online_users,
-        )
+        )  # Convert UUID strings to UUID objects if needed
 
-        # Convert UUID strings to UUID objects if needed
         uuid_room_id = UUID(room_id) if room_id else None
 
-        # Check if room has online users before attempting WebSocket delivery
-        has_online_users = check_room_has_online_users(uuid_room_id)
-
-        # Send the WebSocket notification
-        ws_result = await send_websocket_notification(
-            content=content,
-            subject=subject,
-            metadata=metadata,
-            room_id=uuid_room_id,
+        # Check if room has online users (skip if no room_id)
+        has_online_users = (
+            check_room_has_online_users(uuid_room_id) if room_id else False
         )
+
+        # Send the WebSocket notification (skip if no room_id)
+        ws_result = {
+            "success": False,
+            "errors": ["No room_id provided"],
+            "delivered_to": [],
+        }
+        if room_id:
+            ws_result = await send_websocket_notification(
+                content=content,
+                subject=subject,
+                metadata=metadata,
+                room_id=uuid_room_id,
+            )
 
         # Record delivery attempt
         notification_service = get_notification_service(session)

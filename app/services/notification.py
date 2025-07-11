@@ -6,11 +6,13 @@ from sqlalchemy import and_, asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.client import Client
 from app.models.notification import (
     Notification,
     NotificationDeliveryAttempt,
     NotificationStatus,
 )
+from app.providers import EmailProviderManager
 from app.schemas.notification import (
     NotificationCreate,
     NotificationFilter,
@@ -284,6 +286,35 @@ class NotificationService(
         # Send to Celery
         process_notification.delay(notification_data)
         return True
+
+    async def get_client_email_provider_manager(
+        self, client_id: UUID
+    ) -> EmailProviderManager:
+        """Get email provider manager for a specific client."""
+        # Get client from database
+        result = await self.db.execute(
+            select(Client).where(Client.id == str(client_id))
+        )
+        client = result.scalar_one_or_none()
+
+        if not client:
+            raise ValueError(f"Client {client_id} not found")
+
+        # Use client's provider configs or empty list if none configured
+        provider_configs = client.email_provider_configs or []
+
+        if not provider_configs:
+            # No email providers configured for this client
+            # Could log warning or raise error based on business requirements
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"No email providers configured for client {client_id}")
+
+        # Initialize with client-specific configs
+        manager = EmailProviderManager(provider_configs)
+        await manager.initialize_providers()
+        return manager
 
 
 def get_notification_service(db: AsyncSession) -> NotificationService:

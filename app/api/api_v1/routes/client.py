@@ -1,10 +1,13 @@
 # app/api/api_v1/routes/client.py
+# ruff : noqa
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import AuthClientDep, ClientServiceDep
 from app.models.client import ScopedKeyPermission
+from app.providers import EmailProviderManager
 from app.schemas.client import (
     APIClientReadWithKey,
     ClientCreate,
@@ -14,6 +17,7 @@ from app.schemas.client import (
     ScopedKeyRead,
     ScopedKeyReadWithKey,
 )
+from app.schemas.email_config import EmailProviderConfig
 
 router = APIRouter()
 
@@ -171,3 +175,123 @@ async def revoke_scoped_key(
         )
 
     return None
+
+
+@router.put("/{client_id}/email-providers")
+async def update_email_providers(
+    client_id: UUID,
+    provider_configs: list[EmailProviderConfig],
+    current_client: AuthClientDep,
+    client_service: ClientServiceDep,
+):
+    """Update email provider configurations for a client."""
+
+    # Ensure client can only update their own providers
+    if str(current_client.id) != str(client_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only update your own email providers",
+        )
+
+    # Validate all provider configurations
+    manager = EmailProviderManager([config.model_dump() for config in provider_configs])
+    await manager.initialize_providers()
+
+    validation_results = await manager.validate_all_providers()
+    invalid_providers = [
+        name
+        for name, result in validation_results.items()
+        if not result.get("valid", False)
+    ]
+
+    if invalid_providers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid provider configurations: {', '.join(invalid_providers)}",
+        )
+
+    # Save to database
+    updated_client = await client_service.update_email_providers(
+        client_id=client_id,
+        provider_configs=[config.model_dump() for config in provider_configs],
+    )
+
+    return {
+        "message": "Email providers updated successfully",
+        "provider_count": len(provider_configs),
+    }
+
+
+@router.get("/{client_id}/email-providers")
+async def get_email_providers(
+    client_id: UUID,
+    current_client: AuthClientDep,
+    client_service: ClientServiceDep,
+) -> dict[str, Any]:
+    """Get email provider configurations for a client."""
+
+    # Ensure client can only view their own providers
+    if str(current_client.id) != str(client_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only view your own email providers",
+        )
+
+    provider_configs = await client_service.get_email_providers(client_id)
+
+    # Return configs without sensitive data (API keys, passwords)
+    sanitized_configs = []
+    for config in provider_configs:
+        sanitized_config = {
+            "provider_type": config.get("provider_type"),
+            "is_primary": config.get("is_primary", False),
+            "is_bulk": config.get("is_bulk", True),
+            "max_recipients": config.get("max_recipients", 100),
+            "rate_limit_per_second": config.get("rate_limit_per_second", 10),
+        }
+        # Include non-sensitive config fields
+        provider_config = config.get("config", {})
+        if "from_email" in provider_config:
+            sanitized_config["from_email"] = provider_config["from_email"]
+        if "from_name" in provider_config:
+            sanitized_config["from_name"] = provider_config["from_name"]
+        if "host" in provider_config:  # For SMTP
+            sanitized_config["host"] = provider_config["host"]
+        if "port" in provider_config:  # For SMTP
+            sanitized_config["port"] = provider_config["port"]
+
+        sanitized_configs.append(sanitized_config)
+
+    return {
+        "provider_configs": sanitized_configs,
+        "total_count": len(provider_configs),
+    }
+
+
+@router.post("/{client_id}/email-providers/validate")
+async def validate_email_providers(
+    client_id: UUID,
+    provider_configs: list[EmailProviderConfig],
+    current_client: AuthClientDep,
+):
+    """Validate email provider configurations without saving them."""
+
+    # Ensure client can only validate for themselves
+    if str(current_client.id) != str(client_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Can only validate your own email providers",
+        )
+
+    # Validate all provider configurations
+    manager = EmailProviderManager([config.model_dump() for config in provider_configs])
+    await manager.initialize_providers()
+
+    validation_results = await manager.validate_all_providers()
+
+    return {
+        "validation_results": validation_results,
+        "all_valid": all(
+            result.get("valid", False) for result in validation_results.values()
+        ),
+    }

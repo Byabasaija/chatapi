@@ -240,6 +240,27 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
 
         return new_scoped_key, raw_key
 
+    async def update_email_providers(
+        self, client_id: UUID, provider_configs: list[dict]
+    ) -> Client:
+        """Update email provider configurations for a client."""
+        client = await self.get(client_id)
+        if not client:
+            raise ValueError(f"Client {client_id} not found")
+
+        client.email_provider_configs = provider_configs
+        await self.db.commit()
+        await self.db.refresh(client)
+        return client
+
+    async def get_email_providers(self, client_id: UUID) -> list[dict]:
+        """Get email provider configurations for a client."""
+        client = await self.get(client_id)
+        if not client:
+            raise ValueError(f"Client {client_id} not found")
+
+        return client.email_provider_configs or []
+
 
 def get_client_service(db: AsyncSession) -> ClientService:
     return ClientService(db)

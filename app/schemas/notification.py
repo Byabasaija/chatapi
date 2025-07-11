@@ -37,6 +37,12 @@ class NotificationBase(BaseModel):
     # Email fallback for WebSocket notifications
     email_fallback: dict[str, Any] | None = None
 
+    # Optional provider configuration for this specific notification
+    # If not provided, client's stored provider configs will be used
+    provider_config: dict[str, Any] | None = Field(
+        None, description="Optional email provider config for this notification"
+    )
+
     max_retry_attempts: int = Field(default=3, ge=0, le=10)
 
 
@@ -57,8 +63,12 @@ class NotificationCreate(NotificationBase):
                 raise ValueError("to_email is required for email notifications")
         elif v == NotificationType.WEBSOCKET:
             room_id = values.get("room_id")
-            if not room_id:
-                raise ValueError("room_id is required for WebSocket notifications")
+            email_fallback = values.get("email_fallback")
+            # WebSocket notifications need either room_id OR email_fallback
+            if not room_id and not email_fallback:
+                raise ValueError(
+                    "WebSocket notifications require either room_id or email_fallback"
+                )
         return v
 
 
