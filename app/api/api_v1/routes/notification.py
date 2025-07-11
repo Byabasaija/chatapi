@@ -24,7 +24,7 @@ class SendNotificationRequest(BaseModel):
     type: NotificationType
     subject: str
     content: str
-    priority: NotificationPriority = NotificationPriority.normal
+    priority: NotificationPriority = NotificationPriority.NORMAL
     meta: dict = {}
     scheduled_for: str | None = None  # ISO datetime string
 
@@ -202,14 +202,13 @@ async def update_notification(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
             )
 
-        # Only allow updates for pending/scheduled notifications
+        # Only allow updates for pending notifications
         if notification.status not in [
-            NotificationStatus.pending,
-            NotificationStatus.scheduled,
+            NotificationStatus.PENDING,
         ]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only pending or scheduled notifications can be updated",
+                detail="Only pending notifications can be updated",
             )
 
         # Update the notification
@@ -254,14 +253,13 @@ async def cancel_notification(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found"
             )
 
-        # Only allow cancellation for pending/scheduled notifications
+        # Only allow cancellation for pending notifications
         if notification.status not in [
-            NotificationStatus.pending,
-            NotificationStatus.scheduled,
+            NotificationStatus.PENDING,
         ]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only pending or scheduled notifications can be cancelled",
+                detail="Only pending notifications can be cancelled",
             )
 
         # Cancel the notification

@@ -132,7 +132,7 @@ class Notification(Base):
     __table_args__ = (
         Index("ix_notifications_client_id", "client_id"),
         Index("ix_notifications_status", "status"),
-        Index("ix_notifications_type", "notification_type"),
+        Index("ix_notifications_type", "type"),
         Index("ix_notifications_created_at", "created_at"),
         Index("ix_notifications_scheduled_at", "scheduled_at"),
         Index("ix_notifications_priority", "priority"),

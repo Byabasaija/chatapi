@@ -20,6 +20,20 @@ class MemberRole(str, Enum):
     member = "member"
 
 
+class RoomPermission(str, Enum):
+    READ = "read"
+    WRITE = "write"
+    INVITE = "invite"
+    MANAGE = "manage"
+    DELETE = "delete"
+
+
+class RoomPrivacy(str, Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    INVITE_ONLY = "invite_only"
+
+
 # ===== ROOM SCHEMAS =====
 
 
