@@ -37,7 +37,13 @@ dev-dependencies = [
     "pre-commit<4.0.0,>=3.6.2",
     "types-passlib<2.0.0.0,>=1.7.7.20240106",
     "coverage<8.0.0,>=7.4.3",
-    "uvicorn >= 0.34.2"
+    "uvicorn >= 0.34.2",
+    # Documentation dependencies
+    "mkdocs-material>=9.5.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+    "mkdocs-swagger-ui-tag>=0.7.0",
+    "mkdocs-include-markdown-plugin>=6.0.0",
+    "mkdocs-awesome-pages-plugin>=2.9.0",
 ]
 
 [build-system]

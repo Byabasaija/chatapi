@@ -1,0 +1,166 @@
+site_name: ChatAPI Documentation
+site_description: Open-source messaging and notifications API service
+site_author: ChatAPI Team
+site_url: https://chatapi.dev
+
+# Repository
+repo_name: chatapi
+repo_url: https://github.com/Byabasaija/chatapi
+edit_uri: edit/main/docs/
+
+# Configuration
+theme:
+  name: material
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.tooltips
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - awesome-pages
+  - mermaid2:
+      arguments:
+        theme: auto
+        themeVariables:
+          primaryColor: '#2196f3'
+  - swagger-ui-tag:
+      syntaxHighlightTheme: agate
+      tryItOutEnabled: true
+  - include-markdown:
+      opening_tag: "{!"
+      closing_tag: "!}"
+
+# Customization
+extra:
+  annotate:
+    json: [.s2]
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Byabasaija/chatapi
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/chatapi/chatapi
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/chatapi
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: Byabasaija
+      repo: chatapi
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Page tree (will be auto-generated with awesome-pages plugin)
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quick-start.md
+      - Installation: getting-started/installation.md
+      - Authentication: getting-started/authentication.md
+  - API Guide:
+      - Overview: api/overview.md
+      - Client Management: api/clients.md
+      - Room Management: api/rooms.md
+      - Messages: api/messages.md
+      - Notifications: api/notifications.md
+      - Webhooks: api/webhooks.md
+      - WebSockets: api/websockets.md
+  - Notifications:
+      - Overview: notifications/overview.md
+      - Email Providers: notifications/email-providers.md
+      - WebSocket Delivery: notifications/websocket-delivery.md
+      - Provider Configuration: notifications/provider-configuration.md
+      - Delivery Tracking: notifications/delivery-tracking.md
+  - Development:
+      - Setup: development/setup.md
+      - Architecture: development/architecture.md
+      - Testing: development/testing.md
+      - Contributing: development/contributing.md
+  - Deployment:
+      - Docker: deployment/docker.md
+      - Production: deployment/production.md
+      - Environment Variables: deployment/environment.md
+  - Reference:
+      - API Specification: reference/api-spec.md
+      - Database Schema: reference/database-schema.md
+      - Error Codes: reference/error-codes.md
+      - Changelog: reference/changelog.md
+
+# CSS and JavaScript
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
