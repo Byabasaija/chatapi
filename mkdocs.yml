@@ -1,5 +1,5 @@
 site_name: ChatAPI Documentation
-site_description: Open-source messaging and notifications API service
+site_description: Modern real-time messaging API with intelligent notifications
 site_author: ChatAPI Team
 site_url: https://chatapi.dev
 
@@ -26,6 +26,7 @@ theme:
     - navigation.tabs.sticky
     - navigation.top
     - navigation.tracking
+    - navigation.prune
     - search.highlight
     - search.share
     - search.suggest
@@ -33,14 +34,14 @@ theme:
     - toc.integrate
   palette:
     - scheme: default
-      primary: blue
-      accent: blue
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: blue
-      accent: blue
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -57,7 +58,9 @@ plugins:
       arguments:
         theme: auto
         themeVariables:
-          primaryColor: '#2196f3'
+          primaryColor: '#9c27b0'
+          primaryTextColor: '#ffffff'
+          primaryBorderColor: '#7b1fa2'
   - swagger-ui-tag:
       syntaxHighlightTheme: agate
       tryItOutEnabled: true
@@ -129,16 +132,15 @@ nav:
       - Quick Start: getting-started/quick-start.md
       - Installation: getting-started/installation.md
       - Authentication: getting-started/authentication.md
-  - API Guide:
+  - Messaging API:
       - Overview: api/overview.md
       - Client Management: api/clients.md
       - Room Management: api/rooms.md
       - Messages: api/messages.md
-      - Notifications: api/notifications.md
-      - Webhooks: api/webhooks.md
       - WebSockets: api/websockets.md
   - Notifications:
       - Overview: notifications/overview.md
+      - API Endpoints: api/notifications.md
       - Email Providers: notifications/email-providers.md
       - WebSocket Delivery: notifications/websocket-delivery.md
       - Provider Configuration: notifications/provider-configuration.md
@@ -152,11 +154,6 @@ nav:
       - Docker: deployment/docker.md
       - Production: deployment/production.md
       - Environment Variables: deployment/environment.md
-  - Reference:
-      - API Specification: reference/api-spec.md
-      - Database Schema: reference/database-schema.md
-      - Error Codes: reference/error-codes.md
-      - Changelog: reference/changelog.md
 
 # CSS and JavaScript
 extra_css:
