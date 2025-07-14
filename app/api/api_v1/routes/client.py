@@ -79,7 +79,7 @@ async def get_current_details(
         }
 
 
-@router.put("/me", response_model=ClientRead)
+@router.put("/me")
 async def update_current_client(
     client_update: ClientUpdate,
     current_client: AuthClientDep,
@@ -97,7 +97,12 @@ async def update_current_client(
         )
 
     updated_client = await client_service.update(db_obj=client, obj_in=client_update)
-    return updated_client
+
+    return {
+        "message": "Client information updated successfully",
+        "client_id": str(updated_client.id),
+        "updated_fields": list(client_update.model_dump(exclude_unset=True).keys()),
+    }
 
 
 @router.post("/scoped-keys", response_model=ScopedKeyReadWithKey)
@@ -120,14 +125,12 @@ async def create_scoped_key(
     # Convert string permissions to enum
     permissions = [ScopedKeyPermission(perm) for perm in scoped_key_data.permissions]
 
-    scoped_key_obj, raw_key = await client_service.create_scoped_key(
+    scoped_key, raw_key, created = await client_service.get_or_create_user_scoped_key(
         client_id=client.id, user_id=scoped_key_data.user_id, permissions=permissions
     )
 
-    # Convert to response model and include raw key
-    result = ScopedKeyReadWithKey.model_validate(scoped_key_obj)
-    result.api_key = raw_key
-
+    result = ScopedKeyReadWithKey.model_validate(scoped_key)
+    result.scoped_api_key = raw_key
     return result
 
 
@@ -177,20 +180,19 @@ async def revoke_scoped_key(
     return None
 
 
-@router.put("/{client_id}/email-providers")
+@router.put("/me/email-providers")
 async def update_email_providers(
-    client_id: UUID,
     provider_configs: list[EmailProviderConfig],
     current_client: AuthClientDep,
     client_service: ClientServiceDep,
 ):
-    """Create or Update email provider configurations for a client."""
+    """Create or Update email provider configurations for current client."""
+    client, scoped_key = current_client
 
-    # Ensure client can only update their own providers
-    if str(current_client.id) != str(client_id):
+    if scoped_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Can only update your own email providers",
+            detail="Only master API key can update email providers",
         )
 
     # Validate all provider configurations
@@ -212,7 +214,7 @@ async def update_email_providers(
 
     # Save to database
     updated_client = await client_service.update_email_providers(
-        client_id=client_id,
+        client_id=client.id,
         provider_configs=[config.model_dump() for config in provider_configs],
     )
 
@@ -222,22 +224,21 @@ async def update_email_providers(
     }
 
 
-@router.get("/{client_id}/email-providers")
+@router.get("/me/email-providers")
 async def get_email_providers(
-    client_id: UUID,
     current_client: AuthClientDep,
     client_service: ClientServiceDep,
 ) -> dict[str, Any]:
-    """Get email provider configurations for a client."""
+    """Get email provider configurations for current client."""
+    client, scoped_key = current_client
 
-    # Ensure client can only view their own providers
-    if str(current_client.id) != str(client_id):
+    if scoped_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Can only view your own email providers",
+            detail="Only master API key can view email providers",
         )
 
-    provider_configs = await client_service.get_email_providers(client_id)
+    provider_configs = await client_service.get_email_providers(client.id)
 
     # Return configs without sensitive data (API keys, passwords)
     sanitized_configs = []
@@ -268,19 +269,18 @@ async def get_email_providers(
     }
 
 
-@router.post("/{client_id}/email-providers/validate")
+@router.post("/me/email-providers/validate")
 async def validate_email_providers(
-    client_id: UUID,
     provider_configs: list[EmailProviderConfig],
     current_client: AuthClientDep,
 ):
-    """Validate email provider configurations without saving them."""
+    """Validate email provider configurations for current client without saving them."""
+    client, scoped_key = current_client
 
-    # Ensure client can only validate for themselves
-    if str(current_client.id) != str(client_id):
+    if scoped_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Can only validate your own email providers",
+            detail="Only master API key can validate email providers",
         )
 
     # Validate all provider configurations

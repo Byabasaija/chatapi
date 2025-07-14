@@ -19,7 +19,7 @@ class ErrorResponse(BaseModel):
 
 
 @router.post(
-    "/user-login", response_model=UserLoginResponse, summary="User Login/Authentication"
+    "/login", response_model=UserLoginResponse, summary="User Login/Authentication"
 )
 async def user_login(
     user_data: UserLoginRequest,
@@ -84,7 +84,7 @@ async def user_login(
         )
 
 
-@router.post("/user-logout", summary="User Logout")
+@router.post("/logout", summary="User Logout")
 async def user_logout(
     user_id: str,
     current_client: AuthClientDep,
