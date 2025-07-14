@@ -34,34 +34,19 @@ async def user_login(
     - Fresh credentials on every login
     - Automatic cleanup of potentially compromised keys
     - Simplified frontend logic (always use the returned key)
-    - Better audit trail for security events
 
     **Requirements:**
     - Must be called with a master API key in the Authorization header
     - The user_id should be unique within your client's scope
+    - This endpoint should be called server side to avoid exposing the master key to browsers
+    - Be sure to provider the users permissions
 
     **Response:**
     - Always returns a new `api_key` that should be stored by the frontend
     - Any previous API key for this user is automatically revoked
 
-    **Usage:**
-    ```javascript
-    const response = await fetch('/api/v1/auth/user-login', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer YOUR_MASTER_API_KEY',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        user_id: 'john_doe',
-        display_name: 'John Doe',
-        permissions: ['read_messages', 'send_messages']
-      })
-    });
-
-    // Always use the new key returned in response.api_key
-    localStorage.setItem('apiKey', response.api_key);
-    ```
+    **Note:** This endpoint is designed for user authentication and should not be used
+    for client registration or management. Use the `/clients` endpoints for that.
     """
     try:
         client, scoped_key = current_client
@@ -153,42 +138,4 @@ async def user_logout(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to logout user: {str(e)}",
-        )
-
-
-@router.get("/validate-token", summary="Validate API Token")
-async def validate_token(current_client: AuthClientDep):
-    """
-    Validate the current API token and return information about it.
-
-    Works with both master API keys and scoped keys.
-    Useful for frontend clients to check if their stored token is still valid.
-    """
-    try:
-        client, scoped_key = current_client
-
-        if scoped_key:
-            # Scoped key validation
-            return {
-                "valid": True,
-                "type": "scoped_key",
-                "user_id": scoped_key.user_id,
-                "permissions": scoped_key.permissions,
-                "client_id": str(client.id),
-                "client_name": client.name,
-            }
-        else:
-            # Master key validation
-            return {
-                "valid": True,
-                "type": "master_key",
-                "client_id": str(client.id),
-                "client_name": client.name,
-                "permissions": ["all"],  # Master keys have all permissions
-            }
-
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
         )
