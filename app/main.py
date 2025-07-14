@@ -15,6 +15,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
+    version="1.0.0",
+    description="ChatAPI - Modern real-time intelligent messaging and notifications API service",
 )
 
 # Set all CORS enabled origins

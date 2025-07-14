@@ -1,9 +1,9 @@
-# deps.py
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import async_session_maker
@@ -12,6 +12,8 @@ from app.services.client import ClientService, get_client_service
 from app.services.message import MessageService, get_message_service
 from app.services.notification import NotificationService, get_notification_service
 from app.services.room import RoomService, get_room_service
+
+security = HTTPBearer()
 
 
 @asynccontextmanager
@@ -42,36 +44,29 @@ def get_client_service_dep(db: AsyncSessionDep) -> ClientService:
 ClientServiceDep = Annotated[ClientService, Depends(get_client_service_dep)]
 
 
-# Extract API key from Authorization header
+# Extract API key from Authorization Bearer header
 async def get_api_key_from_header(
-    authorization: Annotated[str | None, Header()] = None,
-    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
     """
-    Extract API key from either Authorization header (Bearer token) or X-API-Key header
+    Extracts and returns the api key from the request headers.
+
+    Args:
+        credentials (HTTPAuthorizationCredentials): The credentials provided by the HTTPBearer security scheme.
+
+    Returns:
+        str: The extracted key.
+
+    Raises:
+        HTTPException: If the key is missing or invalid.
     """
-    api_key = None
+    key = credentials.credentials
 
-    # Try Authorization header first (Bearer token)
-    if authorization:
-        if authorization.startswith("Bearer "):
-            api_key = authorization[7:]  # Remove "Bearer " prefix
-        else:
-            # Direct API key in Authorization header
-            api_key = authorization
-
-    # Fall back to X-API-Key header
-    elif x_api_key:
-        api_key = x_api_key
-
-    if not api_key:
+    if not key:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key required. Provide it in Authorization header (Bearer token) or X-API-Key header",
-            headers={"WWW-Authenticate": "ApiKey"},
+            status_code=403, detail="API key missing from authorization header"
         )
-
-    return api_key
+    return key
 
 
 # Validate ANY API key (master or scoped) - for flexible endpoints
