@@ -5,7 +5,6 @@ from .notification import (
     NotificationDeliveryAttempt,
 )
 from .room import Room, RoomMembership
-from .webhook import WebhookDeliveryAttempt, WebhookEndpoint, WebhookEvent, WebhookLog
 
 __all__ = [
     "Client",
@@ -16,10 +15,6 @@ __all__ = [
     "ScopedKeyPermission",
     "Notification",
     "NotificationDeliveryAttempt",
-    "WebhookEndpoint",
-    "WebhookEvent",
-    "WebhookDeliveryAttempt",
-    "WebhookLog",
 ]
 # __all__ is a convention in Python that defines the public interface of a module.
 # It specifies which names should be accessible when the module is imported with a wildcard import (e.g., from module import *).

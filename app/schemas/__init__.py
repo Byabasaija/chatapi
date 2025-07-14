@@ -64,29 +64,8 @@ from .room import (
     RoomType,
     RoomUpdate,
 )
-from .webhook import (
-    WebhookBatchResponse,
-    WebhookClientStats,
-    WebhookDeliveryAttemptBase,
-    WebhookDeliveryAttemptCreate,
-    WebhookDeliveryAttemptRead,
-    WebhookEndpointBase,
-    WebhookEndpointCreate,
-    WebhookEndpointFilter,
-    WebhookEndpointRead,
-    WebhookEndpointStats,
-    WebhookEndpointUpdate,
-    WebhookEventBase,
-    WebhookEventBatch,
-    WebhookEventCreate,
-    WebhookEventFilter,
-    WebhookEventRead,
-    WebhookEventResponse,
-    WebhookLogBase,
-    WebhookLogCreate,
-    WebhookLogRead,
-    WebhookTestResponse,
-)
+
+# Webhook imports removed - webhooks are not needed with WebSocket real-time communication
 
 __all__ = [
     "APIClientReadWithKey",

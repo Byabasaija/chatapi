@@ -13,7 +13,6 @@ celery_app = Celery(
     include=[
         "app.workers.room_tasks",
         "app.workers.notification_tasks",
-        "app.workers.webhook_tasks",
         "app.workers.utility_tasks",
         "app.workers.test",
     ],
@@ -39,13 +38,6 @@ celery_app.conf.update(
         "app.workers.notification_tasks.send_websocket_notification": {
             "queue": "websocket"
         },
-        "app.workers.notification_tasks.send_webhook_notification": {
-            "queue": "webhook"
-        },
-        # Webhook processing tasks
-        "app.workers.webhook_tasks.process_webhook_event": {"queue": "webhook"},
-        "app.workers.webhook_tasks.retry_failed_webhook": {"queue": "webhook"},
-        "app.workers.webhook_tasks.validate_webhook_endpoint": {"queue": "webhook"},
         # Utility tasks
         "app.workers.utility_tasks.health_check": {"queue": "monitoring"},
         "app.workers.utility_tasks.cleanup_old_notifications": {"queue": "maintenance"},
