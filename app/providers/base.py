@@ -19,7 +19,7 @@ class EmailMessage:
     to: list[str]
     subject: str
     content: str
-    content_type: str = "text/html"  # text/html or text/plain
+    content_type: str = "text/html"
     from_email: str | None = None
     from_name: str | None = None
     reply_to: str | None = None

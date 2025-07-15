@@ -5,7 +5,12 @@ from uuid import UUID
 import sqlalchemy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_api_key, verify_api_key
+from app.core.security import (
+    decrypt_provider_configs,
+    encrypt_provider_configs,
+    hash_api_key,
+    verify_api_key,
+)
 from app.models.client import Client, ScopedKey, ScopedKeyPermission
 from app.schemas.client import (
     ClientCreate,
@@ -243,23 +248,27 @@ class ClientService(BaseService[Client, ClientCreate, ClientUpdate]):
     async def update_email_providers(
         self, client_id: UUID, provider_configs: list[dict]
     ) -> Client:
-        """Update email provider configurations for a client."""
+        """Update email provider configurations for a client with encryption at rest."""
         client = await self.get(client_id)
         if not client:
             raise ValueError(f"Client {client_id} not found")
 
-        client.email_provider_configs = provider_configs
+        # Encrypt sensitive fields before storing
+        encrypted_configs = encrypt_provider_configs(provider_configs)
+        client.email_provider_configs = encrypted_configs
         await self.db.commit()
         await self.db.refresh(client)
         return client
 
     async def get_email_providers(self, client_id: UUID) -> list[dict]:
-        """Get email provider configurations for a client."""
+        """Get email provider configurations for a client with decryption."""
         client = await self.get(client_id)
         if not client:
             raise ValueError(f"Client {client_id} not found")
 
-        return client.email_provider_configs or []
+        encrypted_configs = client.email_provider_configs or []
+        # Decrypt sensitive fields before returning
+        return decrypt_provider_configs(encrypted_configs)
 
 
 def get_client_service(db: AsyncSession) -> ClientService:

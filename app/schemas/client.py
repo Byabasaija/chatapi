@@ -57,8 +57,7 @@ class ScopedKeyBase(BaseModel):
 
 
 class ScopedKeyCreate(ScopedKeyBase):
-    client_id: UUID
-    scoped_api_key: str
+    pass
 
 
 class ScopedKeyUpdate(BaseModel):

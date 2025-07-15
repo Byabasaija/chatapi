@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Any
 
 from app.schemas.email_config import EmailProviderType
@@ -58,89 +57,6 @@ class EmailProviderFactory:
     def register_provider(cls, provider_type: EmailProviderType, provider_class: type):
         """Register a new provider type (for extensibility)."""
         cls._providers[provider_type] = provider_class
-
-    @classmethod
-    def get_default_system_configs(cls) -> list[dict[str, Any]]:
-        """Get default system provider configurations from environment variables."""
-        configs = []
-
-        # SMTP configuration
-        smtp_config = cls._get_smtp_env_config()
-        if smtp_config and smtp_config.get("host"):
-            configs.append(
-                {
-                    "provider_type": "smtp",
-                    "config": smtp_config,
-                    "is_primary": True,
-                    "is_bulk": False,
-                    "max_recipients": 10,
-                    "rate_limit_per_second": 5,
-                }
-            )
-
-        # Mailgun configuration
-        mailgun_config = cls._get_mailgun_env_config()
-        if mailgun_config and mailgun_config.get("api_key"):
-            configs.append(
-                {
-                    "provider_type": "mailgun",
-                    "config": mailgun_config,
-                    "is_primary": len(configs) == 0,  # Primary if no SMTP
-                    "is_bulk": True,
-                    "max_recipients": 1000,
-                    "rate_limit_per_second": 100,
-                }
-            )
-
-        # SendGrid configuration
-        sendgrid_config = cls._get_sendgrid_env_config()
-        if sendgrid_config and sendgrid_config.get("api_key"):
-            configs.append(
-                {
-                    "provider_type": "sendgrid",
-                    "config": sendgrid_config,
-                    "is_primary": len(configs) == 0,  # Primary if no other providers
-                    "is_bulk": True,
-                    "max_recipients": 1000,
-                    "rate_limit_per_second": 100,
-                }
-            )
-
-        return configs
-
-    @classmethod
-    def _get_smtp_env_config(cls) -> dict[str, Any]:
-        """Get SMTP configuration from environment variables."""
-        return {
-            "host": os.getenv("SMTP_HOST"),
-            "port": int(os.getenv("SMTP_PORT", "587")),
-            "username": os.getenv("SMTP_USERNAME"),
-            "password": os.getenv("SMTP_PASSWORD"),
-            "use_tls": os.getenv("SMTP_USE_TLS", "true").lower() == "true",
-            "use_ssl": os.getenv("SMTP_USE_SSL", "false").lower() == "true",
-            "from_email": os.getenv("SMTP_FROM_EMAIL"),
-            "from_name": os.getenv("SMTP_FROM_NAME", "ChatAPI"),
-        }
-
-    @classmethod
-    def _get_mailgun_env_config(cls) -> dict[str, Any]:
-        """Get Mailgun configuration from environment variables."""
-        return {
-            "api_key": os.getenv("MAILGUN_API_KEY"),
-            "domain": os.getenv("MAILGUN_DOMAIN"),
-            "base_url": os.getenv("MAILGUN_BASE_URL", "https://api.mailgun.net/v3"),
-            "from_email": os.getenv("MAILGUN_FROM_EMAIL"),
-            "from_name": os.getenv("MAILGUN_FROM_NAME", "ChatAPI"),
-        }
-
-    @classmethod
-    def _get_sendgrid_env_config(cls) -> dict[str, Any]:
-        """Get SendGrid configuration from environment variables."""
-        return {
-            "api_key": os.getenv("SENDGRID_API_KEY"),
-            "from_email": os.getenv("SENDGRID_FROM_EMAIL"),
-            "from_name": os.getenv("SENDGRID_FROM_NAME", "ChatAPI"),
-        }
 
 
 class EmailProviderManager:
