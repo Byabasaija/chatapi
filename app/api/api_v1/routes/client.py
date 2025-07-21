@@ -17,7 +17,7 @@ from app.schemas.client import (
     ScopedKeyRead,
     ScopedKeyReadWithKey,
 )
-from app.schemas.email_config import EmailProviderConfig
+from app.schemas.email_config import ClientEmailProvider
 
 router = APIRouter()
 
@@ -182,7 +182,7 @@ async def revoke_scoped_key(
 
 @router.put("/me/email-providers")
 async def update_email_providers(
-    provider_configs: list[EmailProviderConfig],
+    provider_configs: list[ClientEmailProvider],
     current_client: AuthClientDep,
     client_service: ClientServiceDep,
 ):
@@ -195,8 +195,26 @@ async def update_email_providers(
             detail="Only master API key can update email providers",
         )
 
+    # Convert to the format expected by EmailProviderManager
+    manager_configs = []
+    for provider in provider_configs:
+        # Extract provider config and add the from_email/from_name fields
+        config_dict = provider.provider_config.model_dump()
+        config_dict["from_email"] = provider.default_from_email
+        if provider.default_from_name:
+            config_dict["from_name"] = provider.default_from_name
+
+        # Add provider metadata
+        manager_config = {
+            "provider_type": config_dict["provider_type"],
+            "config": config_dict,
+            "is_primary": provider.is_primary,
+            "is_bulk": provider.is_bulk,
+        }
+        manager_configs.append(manager_config)
+
     # Validate all provider configurations
-    manager = EmailProviderManager([config.model_dump() for config in provider_configs])
+    manager = EmailProviderManager(manager_configs)
     await manager.initialize_providers()
 
     validation_results = await manager.validate_all_providers()
@@ -212,10 +230,10 @@ async def update_email_providers(
             detail=f"Invalid provider configurations: {', '.join(invalid_providers)}",
         )
 
-    # Save to database
+    # Save to database (save the manager configs, not the raw provider configs)
     updated_client = await client_service.update_email_providers(
         client_id=client.id,
-        provider_configs=[config.model_dump() for config in provider_configs],
+        provider_configs=manager_configs,
     )
 
     return {
@@ -266,32 +284,4 @@ async def get_email_providers(
     return {
         "provider_configs": sanitized_configs,
         "total_count": len(provider_configs),
-    }
-
-
-@router.post("/me/email-providers/validate")
-async def validate_email_providers(
-    provider_configs: list[EmailProviderConfig],
-    current_client: AuthClientDep,
-):
-    """Validate email provider configurations for current client without saving them."""
-    client, scoped_key = current_client
-
-    if scoped_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only master API key can validate email providers",
-        )
-
-    # Validate all provider configurations
-    manager = EmailProviderManager([config.model_dump() for config in provider_configs])
-    await manager.initialize_providers()
-
-    validation_results = await manager.validate_all_providers()
-
-    return {
-        "validation_results": validation_results,
-        "all_valid": all(
-            result.get("valid", False) for result in validation_results.values()
-        ),
     }
