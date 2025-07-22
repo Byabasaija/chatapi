@@ -274,9 +274,9 @@ async def get_email_providers(
             sanitized_config["from_email"] = provider_config["from_email"]
         if "from_name" in provider_config:
             sanitized_config["from_name"] = provider_config["from_name"]
-        if "host" in provider_config:  # For SMTP
+        if "host" in provider_config:
             sanitized_config["host"] = provider_config["host"]
-        if "port" in provider_config:  # For SMTP
+        if "port" in provider_config:
             sanitized_config["port"] = provider_config["port"]
 
         sanitized_configs.append(sanitized_config)
