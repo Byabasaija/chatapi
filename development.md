@@ -372,7 +372,7 @@ docker compose up --build
 **Migration problems:**
 ```bash
 # Check migration status
-alembic current
+C
 
 # Reset database (development only)
 docker compose down -v

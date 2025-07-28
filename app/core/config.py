@@ -52,7 +52,6 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
-    CLIENT_KEY: str
 
     # Redis and Celery Configuration
     REDIS_URL: str = "redis://redis:6379/0"

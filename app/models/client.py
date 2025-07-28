@@ -10,7 +10,6 @@ from sqlalchemy import (
     Index,
     String,
     UniqueConstraint,
-    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -28,7 +27,7 @@ class ScopedKeyPermission(str, Enum):
     READ_MESSAGES = "read_messages"
     SEND_MESSAGES = "send_messages"
     MANAGE_ROOMS = "manage_rooms"
-    INVITE_USERS = "invite_users"
+    INVITE_USERS = "invite_users" """ """ """ """
 
 
 class Client(Base):
@@ -38,7 +37,6 @@ class Client(Base):
         PGUUID,
         primary_key=True,
         default=uuid4,
-        server_default=text("gen_random_uuid()"),
     )
     name: Mapped[str | None] = mapped_column(String(255))
     master_api_key: Mapped[str] = mapped_column(
@@ -85,7 +83,6 @@ class ScopedKey(Base):
         PGUUID,
         primary_key=True,
         default=uuid4,
-        server_default=text("gen_random_uuid()"),
     )
     client_id: Mapped[str] = mapped_column(
         PGUUID, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False

@@ -10,6 +10,7 @@ class ScopedKeyPermission(str, Enum):
     SEND_MESSAGES = "send_messages"
     MANAGE_ROOMS = "manage_rooms"
     INVITE_USERS = "invite_users"
+    JOIN_ROOMS = "join_rooms"
 
 
 # ======== CLIENT SCHEMAS ========
