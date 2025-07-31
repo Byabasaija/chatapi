@@ -11,7 +11,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -35,12 +34,7 @@ class ContentType(str, Enum):
 class Message(Base):
     __tablename__ = "messages"
 
-    id: Mapped[str] = mapped_column(
-        PGUUID,
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
+    id: Mapped[str] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     room_id: Mapped[str] = mapped_column(
         PGUUID, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False
     )

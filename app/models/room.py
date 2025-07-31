@@ -12,7 +12,6 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -50,12 +49,7 @@ class MemberRole(str, Enum):
 class Room(Base):
     __tablename__ = "rooms"
 
-    id: Mapped[str] = mapped_column(
-        PGUUID,
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
+    id: Mapped[str] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     client_id: Mapped[str] = mapped_column(
         PGUUID, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False
     )
@@ -111,12 +105,7 @@ class Room(Base):
 class RoomMembership(Base):
     __tablename__ = "room_memberships"
 
-    id: Mapped[str] = mapped_column(
-        PGUUID,
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
+    id: Mapped[str] = mapped_column(PGUUID, primary_key=True, default=uuid4)
     room_id: Mapped[str] = mapped_column(
         PGUUID, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False
     )

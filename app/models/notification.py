@@ -11,7 +11,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -63,7 +62,6 @@ class Notification(Base):
         PGUUID,
         primary_key=True,
         default=uuid4,
-        server_default=text("gen_random_uuid()"),
     )
 
     # Client association
@@ -147,12 +145,7 @@ class NotificationDeliveryAttempt(Base):
 
     __tablename__ = "notification_delivery_attempts"
 
-    id: Mapped[str] = mapped_column(
-        PGUUID,
-        primary_key=True,
-        default=uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
+    id: Mapped[str] = mapped_column(PGUUID, primary_key=True, default=uuid4)
 
     # Parent notification
     notification_id: Mapped[str] = mapped_column(
