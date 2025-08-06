@@ -4,12 +4,7 @@ services:
       - "5433:5432"
     restart: "no"
 
-  adminer:
-    ports:
-      - "8080:8080"
-    restart: "no"
-
-  api:
+  chatapi:
     restart: "no"
     ports:
       - "8000:8000"

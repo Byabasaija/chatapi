@@ -6,3 +6,52 @@ app.egg-info
 .coverage
 htmlcov
 .venv
+
+# Documentation
+docs/
+*.md
+README.md
+SECURITY.md
+development.md
+
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# CI/CD
+.github/
+
+# Development & Testing
+tests/
+.pytest_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workers dockerfile (not needed for main image)
+celeryworker.dockerfile
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
