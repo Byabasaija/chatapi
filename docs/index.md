@@ -70,13 +70,42 @@ graph TB
 
 ## 🚀 Quick Start
 
-### 1. Start with Docker
+### 1. Start with Docker Hub Image
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: "3.8"
+services:
+  chatapi:
+    image: chatapi/chatapi:0.0.1
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://chatapi:password@db:5432/chatapi
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-here
+    depends_on: [db, redis]
+
+  db:
+    image: postgres:12
+    environment:
+      POSTGRES_DB: chatapi
+      POSTGRES_USER: chatapi
+      POSTGRES_PASSWORD: password
+    volumes: [postgres_data:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7-alpine
+    volumes: [redis_data:/data]
+
+volumes:
+  postgres_data:
+  redis_data:
+```
 
 ```bash
-git clone https://github.com/Byabasaija/chatapi
-cd chatapi
-cp .env.example .env
-docker compose up --build
+docker-compose up -d
 ```
 
 ### 2. Create a Client

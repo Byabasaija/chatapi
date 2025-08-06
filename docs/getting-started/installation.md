@@ -1,20 +1,225 @@
 # Installation
 
-This guide will help you install and set up ChatAPI for development or production use.
+This guide will help you install and set up ChatAPI for development, production, or integration into your existing project.
 
 ## Prerequisites
 
 Before installing ChatAPI, ensure you have the following installed:
 
-- **Python 3.10+** - Required for running the application
 - **Docker & Docker Compose** - For containerized deployment (recommended)
-- **Redis** - For background job processing and caching
-- **PostgreSQL** - For data persistence
-- **UV** - Python package manager (optional but recommended)
+- **Python 3.10+** - Required only for local development
 
-## Quick Installation with Docker
+## Architecture Overview
 
-The fastest way to get started is using Docker Compose:
+ChatAPI is designed as a **plug-and-play service** similar to RocketChat. It consists of just **3 simple services**:
+
+- **`chatapi`** - Main application (includes API server + background workers bundled together)
+- **`db`** - PostgreSQL database for data persistence
+- **`redis`** - Redis for real-time messaging and caching
+
+That's it! No complex microservices to manage.
+
+## Using ChatAPI from Docker Hub (Recommended)
+
+The easiest way to get started is by using the official Docker image from Docker Hub:
+
+### Option 1: Quick Start with Docker Compose
+
+Create a `docker-compose.yml` file in your project:
+
+```yaml
+version: "3.8"
+
+services:
+  # ChatAPI - Main application with bundled workers
+  chatapi:
+    image: chatapi/chatapi:latest
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=your-super-secret-key-change-this-in-production
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=chatapi_password
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - BACKEND_CORS_ORIGINS=["http://localhost:3000"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # PostgreSQL Database - Required for ChatAPI data persistence
+  db:
+    image: postgres:12
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatapi -d chatapi"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    environment:
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=chatapi_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+      - PGDATA=/var/lib/postgresql/data/pgdata
+
+  # Redis - Required for ChatAPI pub/sub and caching
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+Then start the services:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs chatapi
+```
+
+### Option 2: Add to Existing Docker Compose
+
+If you already have a `docker-compose.yml`, add ChatAPI as a service:
+
+```yaml
+services:
+  # ... your existing services ...
+
+  chatapi:
+    image: chatapi/chatapi:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=your-super-secret-key-change-this-in-production
+      - POSTGRES_SERVER=chatapi-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=chatapi_password
+      - REDIS_URL=redis://chatapi-redis:6379/0
+      - CELERY_BROKER_URL=redis://chatapi-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://chatapi-redis:6379/0
+      - SECRET_KEY=${CHATAPI_SECRET_KEY}
+      - ENVIRONMENT=production
+    depends_on:
+      - chatapi-db
+      - chatapi-redis
+
+  chatapi-db:
+    image: postgres:12
+    environment:
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=${CHATAPI_DB_PASSWORD}
+    volumes:
+      - chatapi_db:/var/lib/postgresql/data
+
+  chatapi-redis:
+    image: redis:7-alpine
+    volumes:
+      - chatapi_redis:/data
+
+    depends_on:
+      - chatapi-db
+      - chatapi-redis
+
+  chatapi-db:
+    image: postgres:12
+    environment:
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=chatapi_password
+    volumes:
+      - chatapi_db:/var/lib/postgresql/data
+
+  chatapi-redis:
+    image: redis:7-alpine
+    volumes:
+      - chatapi_redis:/data
+
+volumes:
+  chatapi_db:
+  chatapi_redis:
+```
+
+### Option 3: Using Docker Run Commands
+
+For more control, run containers individually:
+
+```bash
+# Create network
+docker network create chatapi-network
+
+# Start PostgreSQL
+docker run -d \
+  --name chatapi-postgres \
+  --network chatapi-network \
+  -e POSTGRES_DB=chatapi \
+  -e POSTGRES_USER=chatapi \
+  -e POSTGRES_PASSWORD=chatapi_password \
+  -v chatapi-postgres-data:/var/lib/postgresql/data \
+  postgres:12
+
+# Start Redis
+docker run -d \
+  --name chatapi-redis \
+  --network chatapi-network \
+  -v chatapi-redis-data:/data \
+  redis:7-alpine
+
+# Start ChatAPI (includes bundled workers)
+docker run -d \
+  --name chatapi-app \
+  --network chatapi-network \
+  -p 8000:8000 \
+  -e ENVIRONMENT=production \
+  -e SECRET_KEY=your-super-secret-key-change-this-in-production \
+  -e POSTGRES_SERVER=chatapi-postgres \
+  -e POSTGRES_PORT=5432 \
+  -e POSTGRES_DB=chatapi \
+  -e POSTGRES_USER=chatapi \
+  -e POSTGRES_PASSWORD=chatapi_password \
+  -e REDIS_URL=redis://chatapi-redis:6379/0 \
+  -e CELERY_BROKER_URL=redis://chatapi-redis:6379/0 \
+  -e CELERY_RESULT_BACKEND=redis://chatapi-redis:6379/0 \
+  chatapi/chatapi:latest
+```
+
+That's it! No need for separate worker containers - everything runs in the main ChatAPI container.
+
+The API will be available at `http://localhost:8000`.
+
+## Development Installation (Source Code)
+
+If you want to modify ChatAPI or contribute to the project:
 
 ```bash
 # Clone the repository
@@ -31,8 +236,6 @@ This will start:
 - PostgreSQL database on port 5432
 - Redis on port 6379
 - Celery worker for background tasks
-
-The API will be available at `http://localhost:8000`.
 
 ## Manual Installation
 

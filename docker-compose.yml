@@ -1,6 +1,7 @@
 version: "3.7"
 
 services:
+  # PostgreSQL Database - Required for ChatAPI data persistence
   db:
     image: postgres:12
     restart: always
@@ -20,11 +21,10 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
 
+  # Redis - Required for ChatAPI pub/sub and caching
   redis:
     image: redis:7-alpine
     restart: always
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -33,72 +33,33 @@ services:
       timeout: 5s
       retries: 5
     command: redis-server --appendonly yes
-    networks:
-      - default
 
-  adminer:
-    image: adminer
+  # ChatAPI - Main application with bundled workers
+  chatapi:
+    image: "${DOCKER_IMAGE_CHATAPI:-chatapi/chatapi}:${TAG:-latest}"
     restart: always
-    networks:
-      - default
-    depends_on:
-      - db
-    environment:
-      - ADMINER_DESIGN=pepa-linha-dark
-    ports:
-      - "8080:8080"
-
-  prestart:
-    image: "${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}"
-    build:
-      context: ./
-    networks:
-      - default
     depends_on:
       db:
         condition: service_healthy
-        restart: true
-    command: bash scripts/prestart.sh
-    env_file:
-      - .env
-    environment:
-      - ENVIRONMENT=${ENVIRONMENT}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
-      - SECRET_KEY=${SECRET_KEY?Variable not set}
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
-
-  api:
-    image: "${DOCKER_IMAGE_CHATAPI?Variable not set}:${TAG-latest}"
-    restart: always
-    networks:
-      - default
-    depends_on:
-      db:
-        condition: service_healthy
-        restart: true
       redis:
         condition: service_healthy
-      prestart:
-        condition: service_completed_successfully
     env_file:
       - .env
     environment:
-      - ENVIRONMENT=${ENVIRONMENT}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-}
       - SECRET_KEY=${SECRET_KEY?Variable not set}
       - POSTGRES_SERVER=db
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SENTRY_DSN=${SENTRY_DSN:-}
     ports:
-      - "8000:8000" # Exposing the Chat API on port 8000
+      - "${HOST_PORT:-8000}:8000" # Exposing the Chat API on port 8000
     healthcheck:
       test:
         [
@@ -110,63 +71,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
     build:
       context: ./
-
-  celeryworker:
-    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
-    networks:
-      - default
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "200k"
-        max-file: "3"
-    env_file:
-      - .env
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    build:
-      context: ./
-      dockerfile: celeryworker.dockerfile
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
-
-  celerybeat:
-    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
-    networks:
-      - default
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-    command: celery -A app.core.celery_app beat --loglevel=info
-    env_file:
-      - .env
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    build:
-      context: ./
-      dockerfile: celeryworker.dockerfile
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
 
 volumes:
   app-db-data:
   redis-data:
-
-networks:
-  default:
-    # Internal network to link services together
-    driver: bridge

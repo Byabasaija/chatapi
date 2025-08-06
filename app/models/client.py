@@ -27,7 +27,7 @@ class ScopedKeyPermission(str, Enum):
     READ_MESSAGES = "read_messages"
     SEND_MESSAGES = "send_messages"
     MANAGE_ROOMS = "manage_rooms"
-    INVITE_USERS = "invite_users" """ """ """ """
+    INVITE_USERS = "invite_users"
 
 
 class Client(Base):

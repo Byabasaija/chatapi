@@ -20,6 +20,9 @@ ENV UV_COMPILE_BYTECODE=1
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
 ENV UV_LINK_MODE=copy
 
+# Celery environment variables
+ENV C_FORCE_ROOT=1
+
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -40,4 +43,7 @@ COPY ./app /chatapi/app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync
 
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+# Make the startup script executable
+RUN chmod +x /chatapi/scripts/start-all.sh
+
+CMD ["bash", "scripts/start-all.sh"]

@@ -8,17 +8,79 @@ Before starting, ensure you have:
 
 - **Docker & Docker Compose** - For containerized deployment
 - **Python 3.10+** - For local development (optional)
-- **PostgreSQL** - Database (included in Docker setup)
-- **Redis** - For background jobs (included in Docker setup)
 
 ## Installation Methods
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Using Docker Hub Image (Recommended)
 
-The fastest way to get started is using Docker Compose:
+The fastest way to get started without cloning the repository:
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: "3.8"
+
+services:
+  chatapi:
+    image: chatapi/chatapi:0.0.1
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://chatapi:chatapi_password@db:5432/chatapi
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-here-change-this
+      - ENVIRONMENT=production
+      - PROJECT_NAME=ChatAPI
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:12
+    environment:
+      - POSTGRES_DB=chatapi
+      - POSTGRES_USER=chatapi
+      - POSTGRES_PASSWORD=chatapi_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+  celeryworker:
+    image: chatapi/chatapi:0.0.1
+    command: celery -A app.core.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://chatapi:chatapi_password@db:5432/chatapi
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-here-change-this
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+Then start the services:
 
 ```bash
-# Clone the repository
+# Start all services
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+```
+
+### Option 2: Development from Source
+
+For development and customization:
+
+```bash
+# Clone and setup
 git clone https://github.com/Byabasaija/chatapi
 cd chatapi
 
@@ -30,32 +92,6 @@ nano .env
 
 # Start all services
 docker compose up --build
-```
-
-### Option 2: Local Development
-
-For development and customization:
-
-```bash
-# Clone and setup
-git clone https://github.com/Byabasaija/chatapi
-cd chatapi
-
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or
-.venv\Scripts\activate     # Windows
-
-# Install dependencies
-uv sync
-
-# Setup database
-docker compose up db redis -d
-alembic upgrade head
-
-# Start the API
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Access Points
