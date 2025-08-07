@@ -40,15 +40,8 @@ services:
     environment:
       - ENVIRONMENT=production
       - SECRET_KEY=your-super-secret-key-change-this-in-production
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=chatapi
-      - POSTGRES_USER=chatapi
-      - POSTGRES_PASSWORD=chatapi_password
+      - DATABASE_URL=postgresql://chatapi:chatapi_password@db:5432/chatapi
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - BACKEND_CORS_ORIGINS=["http://localhost:3000"]
     depends_on:
       db:
         condition: service_healthy
