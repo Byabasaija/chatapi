@@ -3,9 +3,13 @@ set -e
 
 echo "🚀 Starting ChatAPI with bundled workers..."
 
-# Run database migrations and pre-start checks
-echo "📊 Running database migrations..."
+# Run database connectivity check
+echo "📊 Checking database connectivity..."
 python /chatapi/app/api_pre_start.py
+
+# Run database migrations
+echo "🔄 Running database migrations..."
+alembic upgrade head
 
 # Start Celery worker in the background
 echo "🔧 Starting Celery worker..."
