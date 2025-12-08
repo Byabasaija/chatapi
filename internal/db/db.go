@@ -7,7 +7,6 @@ import (
 	"log/slog"
 
 	"modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite"
 )
 
 //go:embed migrations/*.sql
