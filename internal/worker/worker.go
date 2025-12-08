@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/db"
-	"github.com/yourusername/chatapi/internal/services/delivery"
+	"github.com/Byabasaija/chatapi/internal/db"
+	"github.com/Byabasaija/chatapi/internal/services/delivery"
 )
 
 // DeliveryWorker processes undelivered messages and notifications

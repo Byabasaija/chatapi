@@ -2,12 +2,11 @@ package message
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/models"
+	"github.com/Byabasaija/chatapi/internal/models"
 )
 
 // Service handles message operations

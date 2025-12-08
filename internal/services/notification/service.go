@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/models"
+	"github.com/Byabasaija/chatapi/internal/models"
 )
 
 // Service handles durable notifications

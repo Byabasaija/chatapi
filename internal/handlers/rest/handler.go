@@ -5,15 +5,14 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/yourusername/chatapi/internal/models"
-	"github.com/yourusername/chatapi/internal/services/chatroom"
-	"github.com/yourusername/chatapi/internal/services/delivery"
-	"github.com/yourusername/chatapi/internal/services/message"
-	"github.com/yourusername/chatapi/internal/services/notification"
-	"github.com/yourusername/chatapi/internal/services/realtime"
-	"github.com/yourusername/chatapi/internal/services/tenant"
+	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/Byabasaija/chatapi/internal/services/chatroom"
+	"github.com/Byabasaija/chatapi/internal/services/delivery"
+	"github.com/Byabasaija/chatapi/internal/services/message"
+	"github.com/Byabasaija/chatapi/internal/services/notification"
+	"github.com/Byabasaija/chatapi/internal/services/realtime"
+	"github.com/Byabasaija/chatapi/internal/services/tenant"
 )
 
 // Handler handles REST API requests

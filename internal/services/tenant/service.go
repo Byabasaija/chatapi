@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
-	"time"
 
-	"github.com/yourusername/chatapi/internal/models"
-	"github.com/yourusername/chatapi/internal/ratelimit"
+	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/Byabasaija/chatapi/internal/ratelimit"
 )
 
 // Service handles tenant operations
@@ -92,14 +91,19 @@ func (s *Service) GetTenantConfig(tenantID string) (*TenantConfig, error) {
 // CheckRateLimit checks if a tenant is within their rate limit
 func (s *Service) CheckRateLimit(tenantID string) error {
 	// Get or create rate limiter for this tenant
-	rateLimiter, _ := s.rateLimiters.LoadOrStore(tenantID, func() interface{} {
+	rateLimiter, exists := s.rateLimiters.Load(tenantID)
+	if !exists {
 		config, err := s.GetTenantConfig(tenantID)
+		var bucket *ratelimit.TokenBucket
 		if err != nil {
 			slog.Warn("Failed to get tenant config for rate limiting, using default", "tenant_id", tenantID, "error", err)
-			return ratelimit.NewTokenBucket(s.defaultRateLimit, s.defaultRateLimit*2)
+			bucket = ratelimit.NewTokenBucket(float64(s.defaultRateLimit), float64(s.defaultRateLimit)/2.0)
+		} else {
+			bucket = ratelimit.NewTokenBucket(float64(config.RateLimit), float64(config.RateLimit)/2.0)
 		}
-		return ratelimit.NewTokenBucket(config.RateLimit, config.RateLimit*2)
-	}(nil))
+		s.rateLimiters.Store(tenantID, bucket)
+		rateLimiter = bucket
+	}
 
 	bucket := rateLimiter.(*ratelimit.TokenBucket)
 

@@ -3,13 +3,11 @@ package realtime
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/yourusername/chatapi/internal/models"
 )
 
 // Service manages WebSocket connections and real-time messaging
@@ -92,7 +90,7 @@ func (s *Service) UnregisterConnection(tenantID, userID string, conn *websocket.
 
 	// If no more connections for this user, update presence with grace period
 	if len(s.connections[tenantID][userID]) == 0 {
-		delete(s.connections[tenantID][userID], userID)
+		delete(s.connections[tenantID], userID)
 		// Keep presence for 5 seconds to handle quick reconnects
 		time.AfterFunc(5*time.Second, func() {
 			s.mu.Lock()

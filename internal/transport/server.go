@@ -6,15 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/config"
-	"github.com/yourusername/chatapi/internal/handlers/rest"
-	"github.com/yourusername/chatapi/internal/handlers/ws"
-	"github.com/yourusername/chatapi/internal/services/chatroom"
-	"github.com/yourusername/chatapi/internal/services/delivery"
-	"github.com/yourusername/chatapi/internal/services/message"
-	"github.com/yourusername/chatapi/internal/services/notification"
-	"github.com/yourusername/chatapi/internal/services/realtime"
-	"github.com/yourusername/chatapi/internal/services/tenant"
+	"github.com/Byabasaija/chatapi/internal/config"
+	"github.com/Byabasaija/chatapi/internal/handlers/rest"
+	"github.com/Byabasaija/chatapi/internal/handlers/ws"
+	"github.com/Byabasaija/chatapi/internal/services/chatroom"
+	"github.com/Byabasaija/chatapi/internal/services/delivery"
+	"github.com/Byabasaija/chatapi/internal/services/message"
+	"github.com/Byabasaija/chatapi/internal/services/notification"
+	"github.com/Byabasaija/chatapi/internal/services/realtime"
+	"github.com/Byabasaija/chatapi/internal/services/tenant"
 )
 
 // Server represents the HTTP server

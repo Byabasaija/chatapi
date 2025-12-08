@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/config"
-	"github.com/yourusername/chatapi/internal/db"
-	"github.com/yourusername/chatapi/internal/services/delivery"
-	"github.com/yourusername/chatapi/internal/services/realtime"
-	"github.com/yourusername/chatapi/internal/services/tenant"
-	"github.com/yourusername/chatapi/internal/transport"
-	"github.com/yourusername/chatapi/internal/worker"
+	"github.com/Byabasaija/chatapi/internal/config"
+	"github.com/Byabasaija/chatapi/internal/db"
+	"github.com/Byabasaija/chatapi/internal/services/delivery"
+	"github.com/Byabasaija/chatapi/internal/services/realtime"
+	"github.com/Byabasaija/chatapi/internal/services/tenant"
+	"github.com/Byabasaija/chatapi/internal/transport"
+	"github.com/Byabasaija/chatapi/internal/worker"
 )
 
 func main() {

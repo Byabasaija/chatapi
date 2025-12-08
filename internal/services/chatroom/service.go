@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/yourusername/chatapi/internal/models"
+	"github.com/Byabasaija/chatapi/internal/models"
 )
 
 // Service handles chatroom operations
