@@ -1,0 +1,308 @@
+package rest
+
+import (
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/yourusername/chatapi/internal/models"
+	"github.com/yourusername/chatapi/internal/services/chatroom"
+	"github.com/yourusername/chatapi/internal/services/delivery"
+	"github.com/yourusername/chatapi/internal/services/message"
+	"github.com/yourusername/chatapi/internal/services/notification"
+	"github.com/yourusername/chatapi/internal/services/realtime"
+	"github.com/yourusername/chatapi/internal/services/tenant"
+)
+
+// Handler handles REST API requests
+type Handler struct {
+	tenantSvc   *tenant.Service
+	chatroomSvc *chatroom.Service
+	messageSvc  *message.Service
+	realtimeSvc *realtime.Service
+	deliverySvc *delivery.Service
+	notifSvc    *notification.Service
+}
+
+// NewHandler creates a new REST handler
+func NewHandler(
+	tenantSvc *tenant.Service,
+	chatroomSvc *chatroom.Service,
+	messageSvc *message.Service,
+	realtimeSvc *realtime.Service,
+	deliverySvc *delivery.Service,
+	notifSvc *notification.Service,
+) *Handler {
+	return &Handler{
+		tenantSvc:   tenantSvc,
+		chatroomSvc: chatroomSvc,
+		messageSvc:  messageSvc,
+		realtimeSvc: realtimeSvc,
+		deliverySvc: deliverySvc,
+		notifSvc:    notifSvc,
+	}
+}
+
+// RegisterRoutes registers all REST routes
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	// Health check
+	mux.HandleFunc("GET /health", h.handleHealth)
+
+	// Rooms
+	mux.HandleFunc("POST /rooms", h.handleCreateRoom)
+	mux.HandleFunc("GET /rooms/{room_id}", h.handleGetRoom)
+	mux.HandleFunc("GET /rooms/{room_id}/members", h.handleGetRoomMembers)
+
+	// Messages
+	mux.HandleFunc("POST /rooms/{room_id}/messages", h.handleSendMessage)
+	mux.HandleFunc("GET /rooms/{room_id}/messages", h.handleGetMessages)
+
+	// ACKs
+	mux.HandleFunc("POST /acks", h.handleAck)
+
+	// Notifications
+	mux.HandleFunc("POST /notify", h.handleNotify)
+}
+
+// Middleware for authentication and tenant validation
+func (h *Handler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract API key
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey == "" {
+			http.Error(w, "Missing X-API-Key header", http.StatusUnauthorized)
+			return
+		}
+
+		// Validate tenant
+		tenant, err := h.tenantSvc.ValidateAPIKey(apiKey)
+		if err != nil {
+			http.Error(w, "Invalid API key", http.StatusUnauthorized)
+			return
+		}
+
+		// Check rate limit
+		if err := h.tenantSvc.CheckRateLimit(tenant.TenantID); err != nil {
+			w.Header().Set("Retry-After", "60")
+			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+
+		// Add tenant to request context (simplified - in production use context.WithValue)
+		r.Header.Set("X-Tenant-ID", tenant.TenantID)
+
+		next(w, r)
+	}
+}
+
+// getTenantID extracts tenant ID from request
+func (h *Handler) getTenantID(r *http.Request) string {
+	return r.Header.Get("X-Tenant-ID")
+}
+
+// getUserID extracts user ID from request
+func (h *Handler) getUserID(r *http.Request) string {
+	return r.Header.Get("X-User-Id")
+}
+
+// requireUserID ensures X-User-Id header is present
+func (h *Handler) requireUserID(w http.ResponseWriter, r *http.Request) string {
+	userID := h.getUserID(r)
+	if userID == "" {
+		http.Error(w, "Missing X-User-Id header", http.StatusBadRequest)
+		return ""
+	}
+	return userID
+}
+
+// Health check endpoint
+func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"status": "ok",
+		"service": "chatapi",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Create room endpoint
+func (h *Handler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	userID := h.requireUserID(w, r)
+	if userID == "" {
+		return
+	}
+
+	var req models.CreateRoomRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	room, err := h.chatroomSvc.CreateRoom(tenantID, &req)
+	if err != nil {
+		slog.Error("Failed to create room", "error", err, "tenant_id", tenantID, "user_id", userID)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(room)
+}
+
+// Get room endpoint
+func (h *Handler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	roomID := r.PathValue("room_id")
+
+	room, err := h.chatroomSvc.GetRoom(tenantID, roomID)
+	if err != nil {
+		http.Error(w, "Room not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(room)
+}
+
+// Get room members endpoint
+func (h *Handler) handleGetRoomMembers(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	roomID := r.PathValue("room_id")
+
+	members, err := h.chatroomSvc.GetRoomMembers(tenantID, roomID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"members": members,
+	})
+}
+
+// Send message endpoint
+func (h *Handler) handleSendMessage(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	userID := h.requireUserID(w, r)
+	if userID == "" {
+		return
+	}
+
+	roomID := r.PathValue("room_id")
+
+	var req models.CreateMessageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	message, err := h.messageSvc.SendMessage(tenantID, roomID, userID, &req)
+	if err != nil {
+		slog.Error("Failed to send message", "error", err, "tenant_id", tenantID, "user_id", userID, "room_id", roomID)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast to realtime subscribers
+	h.realtimeSvc.BroadcastToRoom(tenantID, roomID, map[string]interface{}{
+		"type":       "message",
+		"room_id":    roomID,
+		"seq":        message.Seq,
+		"message_id": message.MessageID,
+		"sender_id":  message.SenderID,
+		"content":    message.Content,
+		"created_at": message.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(message)
+}
+
+// Get messages endpoint
+func (h *Handler) handleGetMessages(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	roomID := r.PathValue("room_id")
+
+	// Parse query parameters
+	afterSeq := 0
+	if after := r.URL.Query().Get("after_seq"); after != "" {
+		if seq, err := strconv.Atoi(after); err == nil {
+			afterSeq = seq
+		}
+	}
+
+	limit := 50
+	if lim := r.URL.Query().Get("limit"); lim != "" {
+		if l, err := strconv.Atoi(lim); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	messages, err := h.messageSvc.GetMessages(tenantID, roomID, afterSeq, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"messages": messages,
+	})
+}
+
+// ACK endpoint
+func (h *Handler) handleAck(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+	userID := h.requireUserID(w, r)
+	if userID == "" {
+		return
+	}
+
+	var req models.AckRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.messageSvc.UpdateLastAck(tenantID, userID, req.RoomID, req.Seq); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast ACK to other room members
+	h.realtimeSvc.BroadcastToRoom(tenantID, req.RoomID, map[string]interface{}{
+		"type":    "ack.received",
+		"room_id": req.RoomID,
+		"seq":     req.Seq,
+		"user_id": userID,
+	})
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// Notify endpoint
+func (h *Handler) handleNotify(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+
+	var req models.CreateNotificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	notification, err := h.notifSvc.CreateNotification(tenantID, &req)
+	if err != nil {
+		slog.Error("Failed to create notification", "error", err, "tenant_id", tenantID)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(notification)
+}
