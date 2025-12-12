@@ -1,12 +1,7 @@
 +++
 title = "ChatAPI Documentation"
 type = "book"
-weigh## 📚 **Documentation Sections**
-
-- [Getting Started](/getting-started/) - Installation and basic setup
-- [API Reference](/api/) - REST and WebSocket API documentation
-- [Guides](/guides/) - Advanced usage and integration guides
-- [Architecture](/architecture/) - System design and database schema 1
+weight = 1
 +++
 
 # ChatAPI
