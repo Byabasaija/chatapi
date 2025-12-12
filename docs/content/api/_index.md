@@ -5,7 +5,9 @@ weight: 20
 
 # API Reference
 
-ChatAPI provides both REST and WebSocket APIs for building chat applications. All APIs require authentication via API keys and support multi-tenant operation.
+ChatAPI provides both REST and WebS### SDKs and Libraries
+
+**Coming Soon**: Official SDKs for popular languages APIs for building chat applications. All APIs require authentication via API keys and support multi-tenant operation.
 
 ## Authentication
 
@@ -21,7 +23,7 @@ X-User-Id: <user-identifier>
 
 ## API Overview
 
-{{< tabs "api-overview" >}}
+ChatAPI provides both REST and WebSocket APIs for building chat applications. All APIs require authentication and return JSON responses.
 
 ### REST API
 
@@ -42,8 +44,6 @@ Real-time bidirectional communication:
 - **Presence**: User online/offline status
 - **Typing**: Typing indicators
 - **ACKs**: Message acknowledgments
-
-{{< /tabs >}}
 
 ## Base URL
 

@@ -8,8 +8,6 @@ weight = 1
 
 A lightweight, multitenant chat service built in Go with SQLite, WebSocket support, and durable message delivery.
 
-{{< columns >}}
-
 ## 🚀 **Key Features**
 
 - **Multitenant Architecture**: API key-based tenancy with per-tenant rate limiting
@@ -19,8 +17,6 @@ A lightweight, multitenant chat service built in Go with SQLite, WebSocket suppo
 - **Room Types**: Support for DMs, groups, and channels
 - **SQLite Backend**: WAL mode for concurrent reads/writes
 - **Graceful Shutdown**: Clean connection draining and state persistence
-
-<--->
 
 ## 📖 **Quick Start**
 
@@ -50,8 +46,6 @@ export DATABASE_DSN="file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000"
 # Start the server
 ./bin/chatapi
 ```
-
-{{< /columns >}}
 
 ## 📚 **Documentation Sections**
 

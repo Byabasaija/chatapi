@@ -31,9 +31,7 @@ X-User-Id: user-identifier
 /ws?api_key=your-tenant-api-key&user_id=user-identifier
 ```
 
-{{< hint warning >}}
 **Security Note**: Prefer header-based authentication as query parameters may be logged or cached by proxies.
-{{< /hint >}}
 
 ### Connection Lifecycle
 
