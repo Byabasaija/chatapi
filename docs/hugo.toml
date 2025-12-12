@@ -1,0 +1,63 @@
+baseURL = 'https://byabasaija.github.io/chatapi/'
+languageCode = 'en-us'
+title = 'ChatAPI Documentation'
+theme = 'hugo-book'
+
+# Book configuration
+[params]
+  # Book configuration
+  BookTheme = 'light'
+  BookToC = true
+  BookRepo = 'https://github.com/Byabasaija/chatapi'
+  BookCommitPath = 'commit'
+  BookEditPath = 'edit/main/docs'
+  BookDateFormat = 'January 2, 2006'
+  BookSearch = true
+  BookComments = false
+  BookPortableLinks = true
+  BookServiceWorker = true
+
+  # Multi-lingual mode
+  BookTranslatedOnly = false
+
+  # Content and menu
+  BookSection = '*'
+  BookMenuBundle = '/menu'
+
+  # ChatAPI specific configuration
+  description = "A lightweight, multitenant chat service built in Go with SQLite, WebSocket support, and durable message delivery"
+  author = "ChatAPI Team"
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+
+  [[menu.main]]
+    name = "Getting Started"
+    url = "/getting-started/"
+    weight = 10
+
+  [[menu.main]]
+    name = "API Reference"
+    url = "/api/"
+    weight = 20
+
+  [[menu.main]]
+    name = "Guides"
+    url = "/guides/"
+    weight = 30
+
+  [[menu.main]]
+    name = "Architecture"
+    url = "/architecture/"
+    weight = 40
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
