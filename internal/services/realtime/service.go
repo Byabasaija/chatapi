@@ -302,6 +302,11 @@ func (s *Service) getRoomMembers(tenantID, roomID string) ([]string, error) {
 	return members, rows.Err()
 }
 
+// presenceCleanupWorker periodically cleans up stale presence data
+func (s *Service) presenceCleanupWorker() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
@@ -343,7 +348,7 @@ func (s *Service) Shutdown(ctx context.Context) error {
 	defer s.mu.Unlock()
 
 	shutdownMsg := map[string]interface{}{
-		"type":             "server.shutdown",
+		"type":               "server.shutdown",
 		"reconnect_after_ms": 5000,
 	}
 

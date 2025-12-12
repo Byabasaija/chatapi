@@ -51,7 +51,7 @@ func main() {
 	deliverySvc := delivery.NewService(database.DB, realtimeSvc)
 
 	// Initialize workers
-	deliveryWorker := worker.NewDeliveryWorker(deliverySvc, cfg.WorkerInterval)
+	deliveryWorker := worker.NewDeliveryWorker(database, deliverySvc, cfg.WorkerInterval)
 	walWorker := worker.NewWALCheckpointWorker(database, 5*time.Minute)
 
 	// Start background workers
