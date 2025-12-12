@@ -1,4 +1,4 @@
-baseURL = 'https://byabasaija.github.io/chatapi/'
+baseURL = 'https://chatapi.byabasaija.com/'
 languageCode = 'en-us'
 title = 'ChatAPI Documentation'
 theme = 'hugo-book'
