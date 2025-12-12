@@ -53,6 +53,7 @@ func NewServer(
 	protectedMux.HandleFunc("GET /rooms/{room_id}/messages", restHandler.AuthMiddleware(restHandler.HandleGetMessages))
 	protectedMux.HandleFunc("POST /acks", restHandler.AuthMiddleware(restHandler.HandleAck))
 	protectedMux.HandleFunc("POST /notify", restHandler.AuthMiddleware(restHandler.HandleNotify))
+	protectedMux.HandleFunc("GET /admin/dead-letters", restHandler.AuthMiddleware(restHandler.HandleGetDeadLetters))
 
 	// Register public routes
 	mux.HandleFunc("GET /health", restHandler.HandleHealth)

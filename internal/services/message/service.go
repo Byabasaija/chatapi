@@ -307,6 +307,49 @@ func (s *Service) MarkMessageDelivered(id int) error {
 	return nil
 }
 
+// GetFailedUndeliveredMessages retrieves undelivered messages that have exceeded retry attempts
+func (s *Service) GetFailedUndeliveredMessages(tenantID string, limit int) ([]*models.UndeliveredMessage, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 100
+	}
+
+	query := `
+		SELECT id, tenant_id, user_id, chatroom_id, message_id, seq, attempts, created_at, last_attempt_at
+		FROM undelivered_messages
+		WHERE tenant_id = ? AND attempts >= 5
+		ORDER BY created_at DESC
+		LIMIT ?
+	`
+
+	rows, err := s.db.Query(query, tenantID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get failed undelivered messages: %w", err)
+	}
+	defer rows.Close()
+
+	var messages []*models.UndeliveredMessage
+	for rows.Next() {
+		var msg models.UndeliveredMessage
+		err := rows.Scan(
+			&msg.ID,
+			&msg.TenantID,
+			&msg.UserID,
+			&msg.ChatroomID,
+			&msg.MessageID,
+			&msg.Seq,
+			&msg.Attempts,
+			&msg.CreatedAt,
+			&msg.LastAttemptAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan undelivered message: %w", err)
+		}
+		messages = append(messages, &msg)
+	}
+
+	return messages, rows.Err()
+}
+
 // generateMessageID generates a unique message ID
 // In production, use crypto/rand or UUID library
 func generateMessageID() string {

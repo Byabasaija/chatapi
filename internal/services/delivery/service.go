@@ -12,7 +12,7 @@ import (
 
 // Service handles message and notification delivery with retries
 type Service struct {
-	db         *sql.DB
+	db          *sql.DB
 	realtimeSvc *realtime.Service
 	maxAttempts int
 }
@@ -64,6 +64,7 @@ func (s *Service) ProcessUndeliveredMessages(tenantID string, limit int) error {
 
 		if err := s.attemptMessageDelivery(&msg); err != nil {
 			slog.Warn("Failed to deliver message",
+				"tenant_id", tenantID,
 				"message_id", msg.MessageID,
 				"user_id", msg.UserID,
 				"attempts", msg.Attempts,
@@ -86,13 +87,13 @@ func (s *Service) attemptMessageDelivery(msg *models.UndeliveredMessage) error {
 
 		// Send via WebSocket
 		messagePayload := map[string]interface{}{
-			"type":        "message",
-			"room_id":     msg.ChatroomID,
-			"seq":         msg.Seq,
-			"message_id":  msg.MessageID,
-			"sender_id":   fullMsg.SenderID,
-			"content":     fullMsg.Content,
-			"created_at":  fullMsg.CreatedAt.Format(time.RFC3339),
+			"type":       "message",
+			"room_id":    msg.ChatroomID,
+			"seq":        msg.Seq,
+			"message_id": msg.MessageID,
+			"sender_id":  fullMsg.SenderID,
+			"content":    fullMsg.Content,
+			"created_at": fullMsg.CreatedAt.Format(time.RFC3339),
 		}
 
 		if fullMsg.Meta != "" {
@@ -145,6 +146,7 @@ func (s *Service) ProcessNotifications(tenantID string, limit int) error {
 
 		if err := s.attemptNotificationDelivery(&notif); err != nil {
 			slog.Warn("Failed to deliver notification",
+				"tenant_id", tenantID,
 				"notification_id", notif.NotificationID,
 				"topic", notif.Topic,
 				"attempts", notif.Attempts,

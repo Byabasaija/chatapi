@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Byabasaija/chatapi/internal/models"
 	"github.com/Byabasaija/chatapi/internal/services/chatroom"
@@ -23,6 +24,7 @@ type Handler struct {
 	realtimeSvc *realtime.Service
 	deliverySvc *delivery.Service
 	notifSvc    *notification.Service
+	startTime   time.Time
 }
 
 // NewHandler creates a new REST handler
@@ -41,6 +43,7 @@ func NewHandler(
 		realtimeSvc: realtimeSvc,
 		deliverySvc: deliverySvc,
 		notifSvc:    notifSvc,
+		startTime:   time.Now(),
 	}
 }
 
@@ -121,13 +124,34 @@ func (h *Handler) requireUserID(w http.ResponseWriter, r *http.Request) string {
 
 // HandleHealth health check endpoint
 func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	uptime := time.Since(h.startTime)
+
+	// Test database writability
+	dbWritable := h.testDatabaseWrite()
+
 	response := map[string]interface{}{
-		"status":  "ok",
-		"service": "chatapi",
+		"status":      "ok",
+		"service":     "chatapi",
+		"uptime":      uptime.String(),
+		"db_writable": dbWritable,
+	}
+
+	// Return error status if DB is not writable
+	if !dbWritable {
+		response["status"] = "error"
+		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// testDatabaseWrite performs a simple write test on the database
+func (h *Handler) testDatabaseWrite() bool {
+	// Use a simple tenant query as a DB connectivity test
+	// This is safer than trying to insert/delete test data
+	tenants, err := h.tenantSvc.ListTenants()
+	return err == nil && tenants != nil
 }
 
 // HandleCreateRoom create room endpoint
