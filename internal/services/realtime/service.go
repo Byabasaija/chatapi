@@ -2,6 +2,7 @@ package realtime
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"sync"
@@ -13,6 +14,7 @@ import (
 // Service manages WebSocket connections and real-time messaging
 type Service struct {
 	mu           sync.RWMutex
+	db           *sql.DB
 	connections  map[string]map[string][]*websocket.Conn // tenant -> user -> connections
 	presence     map[string]map[string]time.Time         // tenant -> user -> last seen
 	broadcastCh  chan *broadcastMessage
@@ -27,8 +29,9 @@ type broadcastMessage struct {
 }
 
 // NewService creates a new realtime service
-func NewService() *Service {
+func NewService(db *sql.DB) *Service {
 	s := &Service{
+		db:          db,
 		connections: make(map[string]map[string][]*websocket.Conn),
 		presence:    make(map[string]map[string]time.Time),
 		broadcastCh: make(chan *broadcastMessage, 1000), // buffered channel
@@ -234,12 +237,15 @@ func (s *Service) broadcastWorker() {
 
 // processBroadcast handles a single broadcast message
 func (s *Service) processBroadcast(msg *broadcastMessage) {
-	// For room broadcasts, we need to know which users are in the room
-	// This is a simplified implementation - in practice, you'd look up
-	// room members from the database
-
-	// For now, broadcast to all users in the tenant
-	// TODO: Implement proper room member lookup and filtering
+	// Query room members from database
+	roomMembers, err := s.getRoomMembers(msg.tenantID, msg.roomID)
+	if err != nil {
+		slog.Error("Failed to get room members for broadcast",
+			"tenant_id", msg.tenantID,
+			"room_id", msg.roomID,
+			"error", err)
+		return
+	}
 
 	messageBytes, err := json.Marshal(msg.message)
 	if err != nil {
@@ -254,23 +260,47 @@ func (s *Service) processBroadcast(msg *broadcastMessage) {
 	tenantConnections := s.connections[msg.tenantID]
 	s.mu.RUnlock()
 
-	for userID, connections := range tenantConnections {
-		for _, conn := range connections {
-			if err := conn.WriteMessage(websocket.TextMessage, messageBytes); err != nil {
-				slog.Warn("Failed to broadcast message to user",
-					"tenant_id", msg.tenantID,
-					"user_id", userID,
-					"room_id", msg.roomID,
-					"error", err)
+	// Only broadcast to room members who are connected
+	for _, memberID := range roomMembers {
+		if connections, exists := tenantConnections[memberID]; exists {
+			for _, conn := range connections {
+				if err := conn.WriteMessage(websocket.TextMessage, messageBytes); err != nil {
+					slog.Warn("Failed to broadcast message to user",
+						"tenant_id", msg.tenantID,
+						"user_id", memberID,
+						"room_id", msg.roomID,
+						"error", err)
+				}
 			}
 		}
 	}
 }
 
-// presenceCleanupWorker periodically cleans up stale presence data
-func (s *Service) presenceCleanupWorker() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+// getRoomMembers retrieves the list of user IDs who are members of a room
+func (s *Service) getRoomMembers(tenantID, roomID string) ([]string, error) {
+	query := `
+		SELECT user_id
+		FROM room_members
+		WHERE tenant_id = ? AND chatroom_id = ?
+	`
+
+	rows, err := s.db.Query(query, tenantID, roomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []string
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			return nil, err
+		}
+		members = append(members, userID)
+	}
+
+	return members, rows.Err()
+}
 
 	for {
 		select {

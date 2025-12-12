@@ -174,5 +174,5 @@ func (s *Service) GetNotificationSubscribers(tenantID, topic string) ([]*models.
 
 // generateNotificationID generates a unique notification ID
 func generateNotificationID() string {
-	return fmt.Sprintf("notif_%d", time.Now().UnixNano())
+	return uuid.New().String()
 }

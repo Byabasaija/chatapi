@@ -47,7 +47,7 @@ func main() {
 
 	// Initialize services
 	tenantSvc := tenant.NewService(database.DB)
-	realtimeSvc := realtime.NewService()
+	realtimeSvc := realtime.NewService(database.DB)
 	deliverySvc := delivery.NewService(database.DB, realtimeSvc)
 
 	// Initialize workers
