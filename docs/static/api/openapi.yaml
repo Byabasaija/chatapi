@@ -1,0 +1,466 @@
+openapi: 3.0.3
+info:
+  title: ChatAPI
+  description: A lightweight, multitenant chat service built in Go with SQLite, WebSocket support, and durable message delivery
+  version: 1.0.0
+  contact:
+    name: ChatAPI Team
+    url: https://github.com/Byabasaija/chatapi
+
+servers:
+  - url: https://your-chatapi-instance.com
+    description: Production server
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+    UserIdAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check service health and status
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  uptime:
+                    type: string
+                    example: "2h30m45s"
+                  db_writable:
+                    type: boolean
+                    example: true
+
+  /rooms:
+    post:
+      summary: Create room
+      description: Create a new chat room (DM, group, or channel)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - members
+              properties:
+                type:
+                  type: string
+                  enum: [dm, group, channel]
+                  example: "dm"
+                members:
+                  type: array
+                  items:
+                    type: string
+                  example: ["user1", "user2"]
+                name:
+                  type: string
+                  example: "Team Chat"
+      responses:
+        '201':
+          description: Room created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  room_id:
+                    type: string
+                    example: "room_abc123"
+                  type:
+                    type: string
+                    example: "dm"
+                  unique_key:
+                    type: string
+                    example: "dm:user1:user2"
+                  name:
+                    type: string
+                    nullable: true
+                  last_seq:
+                    type: integer
+                    example: 0
+                  created_at:
+                    type: string
+                    format: date-time
+
+  /rooms/{room_id}:
+    get:
+      summary: Get room
+      description: Retrieve room information
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  room_id:
+                    type: string
+                  type:
+                    type: string
+                  name:
+                    type: string
+                    nullable: true
+                  last_seq:
+                    type: integer
+                  created_at:
+                    type: string
+                    format: date-time
+
+  /rooms/{room_id}/members:
+    get:
+      summary: List room members
+      description: Get all members of a room
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Room members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_id:
+                      type: string
+                    role:
+                      type: string
+                      default: "member"
+                    joined_at:
+                      type: string
+                      format: date-time
+
+  /rooms/{room_id}/messages:
+    post:
+      summary: Send message
+      description: Send a message to a room
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  example: "Hello, world!"
+                meta:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: "text"
+                    mentions:
+                      type: array
+                      items:
+                        type: string
+                      example: ["user2"]
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message_id:
+                    type: string
+                  seq:
+                    type: integer
+                  created_at:
+                    type: string
+                    format: date-time
+
+    get:
+      summary: Get messages
+      description: Retrieve messages from a room
+      parameters:
+        - name: room_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: after_seq
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Messages retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    message_id:
+                      type: string
+                    sender_id:
+                      type: string
+                    seq:
+                      type: integer
+                    content:
+                      type: string
+                    meta:
+                      type: object
+                      nullable: true
+                    created_at:
+                      type: string
+                      format: date-time
+
+  /acks:
+    post:
+      summary: Acknowledge messages
+      description: Mark messages as delivered up to a specific sequence number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - room_id
+                - seq
+              properties:
+                room_id:
+                  type: string
+                  example: "room_abc123"
+                seq:
+                  type: integer
+                  example: 43
+      responses:
+        '200':
+          description: Acknowledgment processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /notify:
+    post:
+      summary: Send notification
+      description: Send a notification to users or room members
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - topic
+                - payload
+                - targets
+              properties:
+                topic:
+                  type: string
+                  example: "order.shipped"
+                payload:
+                  type: object
+                  example:
+                    order_id: "12345"
+                    tracking_number: "1Z999AA1234567890"
+                targets:
+                  type: object
+                  properties:
+                    user_ids:
+                      type: array
+                      items:
+                        type: string
+                    room_id:
+                      type: string
+                    topic_subscribers:
+                      type: boolean
+                      default: false
+      responses:
+        '202':
+          description: Notification queued for delivery
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notification_id:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+
+  /admin/dead-letters:
+    get:
+      summary: Get dead letters
+      description: View failed deliveries (admin endpoint)
+      parameters:
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 50
+      responses:
+        '200':
+          description: Dead letter entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  failed_messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message_id:
+                          type: string
+                        user_id:
+                          type: string
+                        room_id:
+                          type: string
+                        attempts:
+                          type: integer
+                        last_attempt_at:
+                          type: string
+                          format: date-time
+                        error:
+                          type: string
+                  failed_notifications:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        notification_id:
+                          type: string
+                        topic:
+                          type: string
+                        attempts:
+                          type: integer
+                        last_attempt_at:
+                          type: string
+                          format: date-time
+                        error:
+                          type: string
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant API key for authentication
+    UserIdAuth:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: User identifier for authorization
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid request parameters"
+            field:
+              type: string
+              example: "type"
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AuthenticationError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    AuthorizationError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Server internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

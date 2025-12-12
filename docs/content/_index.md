@@ -49,7 +49,10 @@ export DATABASE_DSN="file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000"
 
 ## 📚 **Documentation Sections**
 
-{{< section-menu >}}
+- [Getting Started](/getting-started/) - Installation and basic setup
+- [API Reference](/api/) - REST and WebSocket API documentation
+- [Guides](/guides/) - Advanced usage and integration guides
+- [Architecture](/architecture/) - System design and database schema
 
 ## 🔗 **Links**
 
