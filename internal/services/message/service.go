@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/google/uuid"
 )
 
 // Service handles message operations
@@ -309,5 +310,5 @@ func (s *Service) MarkMessageDelivered(id int) error {
 // generateMessageID generates a unique message ID
 // In production, use crypto/rand or UUID library
 func generateMessageID() string {
-	return fmt.Sprintf("msg_%d", time.Now().UnixNano())
+	return uuid.New().String()
 }

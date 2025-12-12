@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/google/uuid"
 )
 
 // Service handles durable notifications

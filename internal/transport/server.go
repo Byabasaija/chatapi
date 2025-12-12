@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Byabasaija/chatapi/internal/config"
+	"github.com/Byabasaija/chatapi/internal/db"
 	"github.com/Byabasaija/chatapi/internal/handlers/rest"
 	"github.com/Byabasaija/chatapi/internal/handlers/ws"
 	"github.com/Byabasaija/chatapi/internal/services/chatroom"
@@ -27,14 +28,15 @@ type Server struct {
 // NewServer creates a new HTTP server
 func NewServer(
 	cfg *config.Config,
+	db *db.DB,
 	tenantSvc *tenant.Service,
 	realtimeSvc *realtime.Service,
 	deliverySvc *delivery.Service,
 ) *Server {
 	// Create handlers
-	chatroomSvc := chatroom.NewService(nil) // TODO: inject DB
-	messageSvc := message.NewService(nil)   // TODO: inject DB
-	notifSvc := notification.NewService(nil) // TODO: inject DB
+	chatroomSvc := chatroom.NewService(db.DB)
+	messageSvc := message.NewService(db.DB)
+	notifSvc := notification.NewService(db.DB)
 
 	restHandler := rest.NewHandler(tenantSvc, chatroomSvc, messageSvc, realtimeSvc, deliverySvc, notifSvc)
 	wsHandler := ws.NewHandler(tenantSvc, chatroomSvc, messageSvc, realtimeSvc)
@@ -44,20 +46,20 @@ func NewServer(
 
 	// Apply auth middleware to protected routes
 	protectedMux := http.NewServeMux()
-	protectedMux.HandleFunc("POST /rooms", restHandler.authMiddleware(restHandler.handleCreateRoom))
-	protectedMux.HandleFunc("GET /rooms/{room_id}", restHandler.authMiddleware(restHandler.handleGetRoom))
-	protectedMux.HandleFunc("GET /rooms/{room_id}/members", restHandler.authMiddleware(restHandler.handleGetRoomMembers))
-	protectedMux.HandleFunc("POST /rooms/{room_id}/messages", restHandler.authMiddleware(restHandler.handleSendMessage))
-	protectedMux.HandleFunc("GET /rooms/{room_id}/messages", restHandler.authMiddleware(restHandler.handleGetMessages))
-	protectedMux.HandleFunc("POST /acks", restHandler.authMiddleware(restHandler.handleAck))
-	protectedMux.HandleFunc("POST /notify", restHandler.authMiddleware(restHandler.handleNotify))
+	protectedMux.HandleFunc("POST /rooms", restHandler.AuthMiddleware(restHandler.HandleCreateRoom))
+	protectedMux.HandleFunc("GET /rooms/{room_id}", restHandler.AuthMiddleware(restHandler.HandleGetRoom))
+	protectedMux.HandleFunc("GET /rooms/{room_id}/members", restHandler.AuthMiddleware(restHandler.HandleGetRoomMembers))
+	protectedMux.HandleFunc("POST /rooms/{room_id}/messages", restHandler.AuthMiddleware(restHandler.HandleSendMessage))
+	protectedMux.HandleFunc("GET /rooms/{room_id}/messages", restHandler.AuthMiddleware(restHandler.HandleGetMessages))
+	protectedMux.HandleFunc("POST /acks", restHandler.AuthMiddleware(restHandler.HandleAck))
+	protectedMux.HandleFunc("POST /notify", restHandler.AuthMiddleware(restHandler.HandleNotify))
 
 	// Register public routes
-	mux.HandleFunc("GET /health", restHandler.handleHealth)
+	mux.HandleFunc("GET /health", restHandler.HandleHealth)
 	mux.HandleFunc("GET /ws", wsHandler.HandleConnection)
 
 	// Mount protected routes with auth middleware
-	mux.Handle("/", restHandler.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/", restHandler.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		protectedMux.ServeHTTP(w, r)
 	}))
 

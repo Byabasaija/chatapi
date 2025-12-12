@@ -46,21 +46,23 @@ func main() {
 	}
 
 	// Initialize services
-	tenantSvc := tenant.NewService(database)
+	tenantSvc := tenant.NewService(database.DB)
 	realtimeSvc := realtime.NewService()
-	deliverySvc := delivery.NewService(database, realtimeSvc)
+	deliverySvc := delivery.NewService(database.DB, realtimeSvc)
 
 	// Initialize workers
 	deliveryWorker := worker.NewDeliveryWorker(deliverySvc, cfg.WorkerInterval)
+	walWorker := worker.NewWALCheckpointWorker(database, 5*time.Minute)
 
 	// Start background workers
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	deliveryWorker.Start(ctx)
+	walWorker.Start(ctx)
 
 	// Initialize HTTP server
-	server := transport.NewServer(cfg, tenantSvc, realtimeSvc, deliverySvc)
+	server := transport.NewServer(cfg, database, tenantSvc, realtimeSvc, deliverySvc)
 
 	// Handle graceful shutdown
 	shutdown := make(chan os.Signal, 1)

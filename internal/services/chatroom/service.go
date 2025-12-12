@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"time"
 
 	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/google/uuid"
 )
 
 // Service handles chatroom operations
@@ -274,7 +274,5 @@ func (s *Service) RemoveMember(tenantID, roomID, userID string) error {
 // generateRoomID generates a unique room ID
 // In a real implementation, this would use UUID or similar
 func generateRoomID() string {
-	// For now, use a simple counter-based approach
-	// In production, use crypto/rand or a proper UUID library
-	return fmt.Sprintf("room_%d", time.Now().UnixNano())
+	return uuid.New().String()
 }

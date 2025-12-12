@@ -47,26 +47,26 @@ func NewHandler(
 // RegisterRoutes registers all REST routes
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Health check
-	mux.HandleFunc("GET /health", h.handleHealth)
+	mux.HandleFunc("GET /health", h.HandleHealth)
 
 	// Rooms
-	mux.HandleFunc("POST /rooms", h.handleCreateRoom)
-	mux.HandleFunc("GET /rooms/{room_id}", h.handleGetRoom)
-	mux.HandleFunc("GET /rooms/{room_id}/members", h.handleGetRoomMembers)
+	mux.HandleFunc("POST /rooms", h.HandleCreateRoom)
+	mux.HandleFunc("GET /rooms/{room_id}", h.HandleGetRoom)
+	mux.HandleFunc("GET /rooms/{room_id}/members", h.HandleGetRoomMembers)
 
 	// Messages
-	mux.HandleFunc("POST /rooms/{room_id}/messages", h.handleSendMessage)
-	mux.HandleFunc("GET /rooms/{room_id}/messages", h.handleGetMessages)
+	mux.HandleFunc("POST /rooms/{room_id}/messages", h.HandleSendMessage)
+	mux.HandleFunc("GET /rooms/{room_id}/messages", h.HandleGetMessages)
 
 	// ACKs
-	mux.HandleFunc("POST /acks", h.handleAck)
+	mux.HandleFunc("POST /acks", h.HandleAck)
 
 	// Notifications
-	mux.HandleFunc("POST /notify", h.handleNotify)
+	mux.HandleFunc("POST /notify", h.HandleNotify)
 }
 
-// Middleware for authentication and tenant validation
-func (h *Handler) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// AuthMiddleware for authentication and tenant validation
+func (h *Handler) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract API key
 		apiKey := r.Header.Get("X-API-Key")
@@ -116,8 +116,8 @@ func (h *Handler) requireUserID(w http.ResponseWriter, r *http.Request) string {
 	return userID
 }
 
-// Health check endpoint
-func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
+// HandleHealth health check endpoint
+func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"status": "ok",
 		"service": "chatapi",
@@ -127,8 +127,8 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// Create room endpoint
-func (h *Handler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
+// HandleCreateRoom create room endpoint
+func (h *Handler) HandleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	userID := h.requireUserID(w, r)
 	if userID == "" {
@@ -152,8 +152,8 @@ func (h *Handler) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(room)
 }
 
-// Get room endpoint
-func (h *Handler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
+// HandleGetRoom get room endpoint
+func (h *Handler) HandleGetRoom(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	roomID := r.PathValue("room_id")
 
@@ -167,8 +167,8 @@ func (h *Handler) handleGetRoom(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(room)
 }
 
-// Get room members endpoint
-func (h *Handler) handleGetRoomMembers(w http.ResponseWriter, r *http.Request) {
+// HandleGetRoomMembers get room members endpoint
+func (h *Handler) HandleGetRoomMembers(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	roomID := r.PathValue("room_id")
 
@@ -184,8 +184,8 @@ func (h *Handler) handleGetRoomMembers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Send message endpoint
-func (h *Handler) handleSendMessage(w http.ResponseWriter, r *http.Request) {
+// HandleSendMessage send message endpoint
+func (h *Handler) HandleSendMessage(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	userID := h.requireUserID(w, r)
 	if userID == "" {
@@ -222,8 +222,8 @@ func (h *Handler) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(message)
 }
 
-// Get messages endpoint
-func (h *Handler) handleGetMessages(w http.ResponseWriter, r *http.Request) {
+// HandleGetMessages get messages endpoint
+func (h *Handler) HandleGetMessages(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	roomID := r.PathValue("room_id")
 
@@ -254,8 +254,8 @@ func (h *Handler) handleGetMessages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ACK endpoint
-func (h *Handler) handleAck(w http.ResponseWriter, r *http.Request) {
+// HandleAck ACK endpoint
+func (h *Handler) HandleAck(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 	userID := h.requireUserID(w, r)
 	if userID == "" {
@@ -284,8 +284,8 @@ func (h *Handler) handleAck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Notify endpoint
-func (h *Handler) handleNotify(w http.ResponseWriter, r *http.Request) {
+// HandleNotify notify endpoint
+func (h *Handler) HandleNotify(w http.ResponseWriter, r *http.Request) {
 	tenantID := h.getTenantID(r)
 
 	var req models.CreateNotificationRequest
