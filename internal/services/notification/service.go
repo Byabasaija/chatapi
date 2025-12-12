@@ -172,6 +172,48 @@ func (s *Service) GetNotificationSubscribers(tenantID, topic string) ([]*models.
 	return subscribers, nil
 }
 
+// GetFailedNotifications retrieves notifications that have failed delivery
+func (s *Service) GetFailedNotifications(tenantID string, limit int) ([]*models.Notification, error) {
+	if limit <= 0 || limit > 1000 {
+		limit = 100
+	}
+
+	query := `
+		SELECT notification_id, tenant_id, topic, payload, created_at, status, attempts, last_attempt_at
+		FROM notifications
+		WHERE tenant_id = ? AND status = 'dead'
+		ORDER BY created_at DESC
+		LIMIT ?
+	`
+
+	rows, err := s.db.Query(query, tenantID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get failed notifications: %w", err)
+	}
+	defer rows.Close()
+
+	var notifications []*models.Notification
+	for rows.Next() {
+		var n models.Notification
+		err := rows.Scan(
+			&n.NotificationID,
+			&n.TenantID,
+			&n.Topic,
+			&n.Payload,
+			&n.CreatedAt,
+			&n.Status,
+			&n.Attempts,
+			&n.LastAttemptAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan notification: %w", err)
+		}
+		notifications = append(notifications, &n)
+	}
+
+	return notifications, rows.Err()
+}
+
 // generateNotificationID generates a unique notification ID
 func generateNotificationID() string {
 	return uuid.New().String()

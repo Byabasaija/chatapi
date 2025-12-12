@@ -63,6 +63,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Notifications
 	mux.HandleFunc("POST /notify", h.HandleNotify)
+
+	// Admin
+	mux.HandleFunc("GET /admin/dead-letters", h.HandleGetDeadLetters)
 }
 
 // AuthMiddleware for authentication and tenant validation
@@ -119,7 +122,7 @@ func (h *Handler) requireUserID(w http.ResponseWriter, r *http.Request) string {
 // HandleHealth health check endpoint
 func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
-		"status": "ok",
+		"status":  "ok",
 		"service": "chatapi",
 	}
 
@@ -304,4 +307,39 @@ func (h *Handler) HandleNotify(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(notification)
+}
+
+// HandleGetDeadLetters admin endpoint to get failed deliveries
+func (h *Handler) HandleGetDeadLetters(w http.ResponseWriter, r *http.Request) {
+	tenantID := h.getTenantID(r)
+
+	// Parse query parameters
+	limit := 100
+	if lim := r.URL.Query().Get("limit"); lim != "" {
+		if l, err := strconv.Atoi(lim); err == nil && l > 0 && l <= 1000 {
+			limit = l
+		}
+	}
+
+	// Get failed notifications
+	failedNotifications, err := h.notifSvc.GetFailedNotifications(tenantID, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get failed undelivered messages
+	failedMessages, err := h.messageSvc.GetFailedUndeliveredMessages(tenantID, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"failed_notifications": failedNotifications,
+		"failed_messages":      failedMessages,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
