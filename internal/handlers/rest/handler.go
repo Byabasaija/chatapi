@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hastenr/chatapi/internal/config"
 	"github.com/hastenr/chatapi/internal/models"
 	"github.com/hastenr/chatapi/internal/services/chatroom"
 	"github.com/hastenr/chatapi/internal/services/delivery"

@@ -177,27 +177,6 @@ func (s *Service) CheckRateLimit(tenantID string) error {
 	return nil
 }
 
-// CreateTenant creates a new tenant (admin operation)
-func (s *Service) CreateTenant(tenantID, apiKey, name string, config *TenantConfig) error {
-	configJSON, err := json.Marshal(config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	query := `
-		INSERT INTO tenants (tenant_id, api_key, name, config)
-		VALUES (?, ?, ?, ?)
-	`
-
-	_, err = s.db.Exec(query, tenantID, apiKey, name, string(configJSON))
-	if err != nil {
-		return fmt.Errorf("failed to create tenant: %w", err)
-	}
-
-	slog.Info("Created new tenant", "tenant_id", tenantID, "name", name)
-	return nil
-}
-
 // ListTenants returns all tenants (admin operation)
 func (s *Service) ListTenants() ([]*models.Tenant, error) {
 	query := `SELECT tenant_id, api_key, name, config, created_at FROM tenants ORDER BY created_at DESC`

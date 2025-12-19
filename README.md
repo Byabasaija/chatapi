@@ -2,7 +2,7 @@
 
 A lightweight, multitenant chat service built in Go with SQLite, WebSocket support, and durable message delivery.
 
-[![Documentation](https://img.shields.io/badge/docs-hugo-blue)](https://byabasaija.github.io/chatapi/)
+[![Documentation](https://img.shields.io/badge/docs-hugo-blue)](https://hastenr.github.io/chatapi/)
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -56,7 +56,7 @@ curl http://localhost:8080/health
 
 ## Documentation
 
-📚 **[Complete Documentation](https://byabasaija.github.io/chatapi/)**
+📚 **[Complete Documentation](https://hastenr.github.io/chatapi/)**
 
 - **Getting Started**: Installation and setup guides
 - **API Reference**: REST and WebSocket API documentation
@@ -84,20 +84,34 @@ cd docs && hugo server
 | `DATABASE_DSN` | `file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000` | SQLite database DSN |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
 | `DEFAULT_RATE_LIMIT` | `100` | Requests per second per tenant |
+| `MASTER_API_KEY` | `` | Master API key for admin operations (required for tenant creation) |
 
-See [Configuration Guide](https://byabasaija.github.io/chatapi/getting-started/) for all options.
+See [Configuration Guide](https://hastenr.github.io/chatapi/getting-started/) for all options.
 
 ## API Example
 
+### Create a Tenant (Admin)
+
 ```bash
-# Create a room
+curl -X POST http://localhost:8080/admin/tenants \
+  -H "X-Master-Key: your-master-key" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "MyCompany"}'
+```
+
+### Create a Room
+
+```bash
 curl -X POST http://localhost:8080/rooms \
   -H "X-API-Key: your-api-key" \
   -H "X-User-Id: user123" \
   -H "Content-Type: application/json" \
   -d '{"type": "dm", "members": ["alice", "bob"]}'
+```
 
-# Send a message
+### Send a Message
+
+```bash
 curl -X POST http://localhost:8080/rooms/room_123/messages \
   -H "X-API-Key: your-api-key" \
   -H "X-User-Id: user123" \

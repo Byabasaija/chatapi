@@ -6,7 +6,7 @@ Lightweight Go service for multitenant chat, using SQLite + WebSocket. Service-b
 
 Key components:
 - **Services**: Business logic (tenant validation, chatroom ops, message sequencing, realtime pub/sub, delivery retries)
-- **Handlers**: REST (`/rooms`, `/messages`, `/acks`, `/notify`) and WS (`/ws`) endpoints
+- **Handlers**: REST (`/rooms`, `/messages`, `/acks`, `/notify`, `/admin/tenants`) and WS (`/ws`) endpoints
 - **Workers**: Background tasks for delivery retries and WAL checkpoints
 - **DB**: SQLite with WAL mode, embedded migrations in `internal/db/migrations/`
 
@@ -22,7 +22,7 @@ Key components:
 ## Developer Workflows
 
 - **Build**: `go build ./cmd/chatapi`
-- **Run**: Set env vars (`LISTEN_ADDR`, `DATABASE_DSN`), `./chatapi`
+- **Run**: Set env vars (`LISTEN_ADDR`, `DATABASE_DSN`, `MASTER_API_KEY`), `./chatapi`
 - **Health**: `GET /health` for uptime and DB check
 - **Debug**: `LOG_LEVEL=debug`, use `slog` for tracing
 - **Migrations**: Auto-run on start; add new `.sql` in `internal/db/migrations/`
@@ -42,5 +42,6 @@ Key components:
 - **Realtime**: WS for live events; HTTP for history/acks
 - **Notifications**: POST `/notify` to relay to subscribers
 - **Rate Limiting**: In-memory token bucket per tenant
+- **Admin**: POST `/admin/tenants` with `X-Master-Key` to create tenants
 
 Reference: [Full Spec](README.md), [API Docs](docs/)
