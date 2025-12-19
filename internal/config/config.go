@@ -28,6 +28,9 @@ type Config struct {
 
 	// Rate limiting defaults
 	DefaultRateLimit     int // requests per second per tenant
+
+	// Admin configuration
+	MasterAPIKey         string
 }
 
 // Load loads configuration from environment variables with sensible defaults
@@ -42,6 +45,7 @@ func Load() (*Config, error) {
 		ShutdownDrainTimeout: getEnvAsDuration("SHUTDOWN_DRAIN_TIMEOUT", 10*time.Second),
 		WorkerInterval:       getEnvAsDuration("WORKER_INTERVAL", 30*time.Second),
 		RetryInterval:        getEnvAsDuration("RETRY_INTERVAL", 30*time.Second),
+		MasterAPIKey:         getEnv("MASTER_API_KEY", ""),
 	}
 
 	return cfg, nil

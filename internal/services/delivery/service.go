@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/Byabasaija/chatapi/internal/models"
-	"github.com/Byabasaija/chatapi/internal/services/realtime"
+	"github.com/hastenr/chatapi/internal/models"
+	"github.com/hastenr/chatapi/internal/services/realtime"
 )
 
 // Service handles message and notification delivery with retries

@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Byabasaija/chatapi/internal/config"
-	"github.com/Byabasaija/chatapi/internal/db"
-	"github.com/Byabasaija/chatapi/internal/handlers/rest"
-	"github.com/Byabasaija/chatapi/internal/handlers/ws"
-	"github.com/Byabasaija/chatapi/internal/services/chatroom"
-	"github.com/Byabasaija/chatapi/internal/services/delivery"
-	"github.com/Byabasaija/chatapi/internal/services/message"
-	"github.com/Byabasaija/chatapi/internal/services/notification"
-	"github.com/Byabasaija/chatapi/internal/services/realtime"
-	"github.com/Byabasaija/chatapi/internal/services/tenant"
+	"github.com/hastenr/chatapi/internal/config"
+	"github.com/hastenr/chatapi/internal/db"
+	"github.com/hastenr/chatapi/internal/handlers/rest"
+	"github.com/hastenr/chatapi/internal/handlers/ws"
+	"github.com/hastenr/chatapi/internal/services/chatroom"
+	"github.com/hastenr/chatapi/internal/services/delivery"
+	"github.com/hastenr/chatapi/internal/services/message"
+	"github.com/hastenr/chatapi/internal/services/notification"
+	"github.com/hastenr/chatapi/internal/services/realtime"
+	"github.com/hastenr/chatapi/internal/services/tenant"
 )
 
 // Server represents the HTTP server
@@ -38,7 +38,7 @@ func NewServer(
 	messageSvc := message.NewService(db.DB)
 	notifSvc := notification.NewService(db.DB)
 
-	restHandler := rest.NewHandler(tenantSvc, chatroomSvc, messageSvc, realtimeSvc, deliverySvc, notifSvc)
+	restHandler := rest.NewHandler(tenantSvc, chatroomSvc, messageSvc, realtimeSvc, deliverySvc, notifSvc, cfg)
 	wsHandler := ws.NewHandler(tenantSvc, chatroomSvc, messageSvc, realtimeSvc)
 
 	// Create mux and register routes

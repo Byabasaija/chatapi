@@ -26,7 +26,7 @@ A lightweight, multitenant chat service built in Go with SQLite, WebSocket suppo
 
 ```bash
 # Clone the repository
-git clone https://github.com/Byabasaija/chatapi.git
+git clone https://github.com/hastenr/chatapi.git
 cd chatapi
 
 # Install dependencies

@@ -109,8 +109,8 @@ Testing strategies for ChatAPI integrations.
 
 ## Need Help?
 
-- **Documentation Issues**: [Open an issue](https://github.com/Byabasaija/chatapi/issues) on GitHub
-- **Community Support**: [GitHub Discussions](https://github.com/Byabasaija/chatapi/discussions)
+- **Documentation Issues**: [Open an issue](https://github.com/hastenr/chatapi/issues) on GitHub
+- **Community Support**: [GitHub Discussions](https://github.com/hastenr/chatapi/discussions)
 - **Professional Support**: Contact the maintainers for enterprise support options
 
 ---

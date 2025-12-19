@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"sort"
 
-	"github.com/Byabasaija/chatapi/internal/models"
+	"github.com/hastenr/chatapi/internal/models"
 	"github.com/google/uuid"
 )
 

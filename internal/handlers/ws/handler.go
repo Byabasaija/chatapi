@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/Byabasaija/chatapi/internal/models"
-	"github.com/Byabasaija/chatapi/internal/services/chatroom"
-	"github.com/Byabasaija/chatapi/internal/services/message"
-	"github.com/Byabasaija/chatapi/internal/services/realtime"
-	"github.com/Byabasaija/chatapi/internal/services/tenant"
+	"github.com/hastenr/chatapi/internal/models"
+	"github.com/hastenr/chatapi/internal/services/chatroom"
+	"github.com/hastenr/chatapi/internal/services/message"
+	"github.com/hastenr/chatapi/internal/services/realtime"
+	"github.com/hastenr/chatapi/internal/services/tenant"
 )
 
 var upgrader = websocket.Upgrader{

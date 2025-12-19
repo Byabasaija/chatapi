@@ -1,4 +1,4 @@
-module github.com/Byabasaija/chatapi
+module github.com/hastenr/chatapi
 
 go 1.21
 

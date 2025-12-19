@@ -20,7 +20,7 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Byabasaija/chatapi.git
+git clone https://github.com/hastenr/chatapi.git
 cd chatapi
 ```
 
@@ -157,5 +157,5 @@ Check the structured JSON logs for debugging:
 ./bin/chatapi 2>&1 | jq .
 ```
 
-For more help, check the [troubleshooting guide](/guides/troubleshooting/) or [open an issue](https://github.com/Byabasaija/chatapi/issues).
+For more help, check the [troubleshooting guide](/guides/troubleshooting/) or [open an issue](https://github.com/hastenr/chatapi/issues).
 

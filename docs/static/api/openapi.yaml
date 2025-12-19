@@ -5,10 +5,10 @@ info:
   version: 1.0.0
   contact:
     name: ChatAPI Team
-    url: https://github.com/Byabasaija/chatapi
+    url: https://github.com/hastenr/chatapi
 
 servers:
-  - url: https://chatapi.byabasaija.com
+  - url: https://chatapi.hastenr.com
     description: Production server
   - url: http://localhost:8080
     description: Local development server

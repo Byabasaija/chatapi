@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Byabasaija/chatapi/internal/models"
-	"github.com/Byabasaija/chatapi/internal/services/chatroom"
-	"github.com/Byabasaija/chatapi/internal/services/delivery"
-	"github.com/Byabasaija/chatapi/internal/services/message"
-	"github.com/Byabasaija/chatapi/internal/services/notification"
-	"github.com/Byabasaija/chatapi/internal/services/realtime"
-	"github.com/Byabasaija/chatapi/internal/services/tenant"
+	"github.com/hastenr/chatapi/internal/models"
+	"github.com/hastenr/chatapi/internal/services/chatroom"
+	"github.com/hastenr/chatapi/internal/services/delivery"
+	"github.com/hastenr/chatapi/internal/services/message"
+	"github.com/hastenr/chatapi/internal/services/notification"
+	"github.com/hastenr/chatapi/internal/services/realtime"
+	"github.com/hastenr/chatapi/internal/services/tenant"
 )
 
 // Handler handles REST API requests
@@ -24,6 +24,7 @@ type Handler struct {
 	realtimeSvc *realtime.Service
 	deliverySvc *delivery.Service
 	notifSvc    *notification.Service
+	config      *config.Config
 	startTime   time.Time
 }
 
@@ -35,6 +36,7 @@ func NewHandler(
 	realtimeSvc *realtime.Service,
 	deliverySvc *delivery.Service,
 	notifSvc *notification.Service,
+	config *config.Config,
 ) *Handler {
 	return &Handler{
 		tenantSvc:   tenantSvc,
@@ -43,6 +45,7 @@ func NewHandler(
 		realtimeSvc: realtimeSvc,
 		deliverySvc: deliverySvc,
 		notifSvc:    notifSvc,
+		config:      config,
 		startTime:   time.Now(),
 	}
 }
@@ -68,6 +71,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /notify", h.HandleNotify)
 
 	// Admin
+	mux.HandleFunc("POST /admin/tenants", h.HandleCreateTenant)
 	mux.HandleFunc("GET /admin/dead-letters", h.HandleGetDeadLetters)
 }
 
@@ -331,6 +335,42 @@ func (h *Handler) HandleNotify(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(notification)
+}
+
+// HandleCreateTenant creates a new tenant (admin only)
+func (h *Handler) HandleCreateTenant(w http.ResponseWriter, r *http.Request) {
+	// Check master API key
+	masterKey := r.Header.Get("X-Master-Key")
+	if masterKey == "" || masterKey != h.config.MasterAPIKey {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create tenant
+	tenant, err := h.tenantSvc.CreateTenant(req.Name)
+	if err != nil {
+		slog.Error("Failed to create tenant", "error", err)
+		http.Error(w, "Failed to create tenant", http.StatusInternalServerError)
+		return
+	}
+
+	// Return tenant details
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tenant)
 }
 
 // HandleGetDeadLetters admin endpoint to get failed deliveries
