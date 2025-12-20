@@ -5,6 +5,30 @@ A lightweight, multitenant chat service built in Go with SQLite, WebSocket suppo
 [![Documentation](https://img.shields.io/badge/docs-hugo-blue)](https://hastenr.github.io/chatapi/)
 [![Go Version](https://img.shields.io/badge/go-1.21+-blue)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/hastenr/chatapi)](https://github.com/hastenr/chatapi/releases)
+[![Docker Image Version (latest by date)](https://img.shields.io/docker/v/hastenr/chatapi)](https://hub.docker.com/r/hastenr/chatapi)
+
+## Releases
+
+Download pre-built binaries and Docker images from [GitHub Releases](https://github.com/hastenr/chatapi/releases).
+
+### Binary Installation
+
+```bash
+# Download latest release for your platform
+curl -L https://github.com/hastenr/chatapi/releases/latest/download/chatapi-linux-amd64.tar.gz | tar xz
+sudo mv chatapi /usr/local/bin/
+```
+
+### Docker Installation
+
+```bash
+# Pull from Docker Hub
+docker pull hastenr/chatapi:latest
+
+# Run with environment variables
+docker run -p 8080:8080 -e MASTER_API_KEY=your-key hastenr/chatapi
+```
 
 ## Features
 
@@ -34,6 +58,28 @@ go mod download
 
 # Build the binary
 go build ./cmd/chatapi
+
+# Or use Makefile
+make build
+
+# Build for all platforms
+make build-all
+```
+
+### Docker
+
+```bash
+# Build the Docker image
+docker build -t chatapi .
+
+# Or use Makefile
+make docker-build
+
+# Run the container
+docker run -p 8080:8080 -e MASTER_API_KEY=your-key chatapi
+
+# Or use Makefile
+make docker-run
 ```
 
 ### Run

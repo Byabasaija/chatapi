@@ -62,8 +62,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	deliveryWorker.Start(ctx)
-	walWorker.Start(ctx)
+	go deliveryWorker.Start(ctx)
+	go walWorker.Start(ctx)
 
 	// Initialize HTTP server
 	server := transport.NewServer(cfg, database, tenantSvc, realtimeSvc, deliverySvc)

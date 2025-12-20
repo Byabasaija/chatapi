@@ -8,6 +8,10 @@
 # Environment variables
 .env
 
+# Build artifacts
+/dist/
+/chatapi
+
 # Go build output
 /bin/
 /dist/

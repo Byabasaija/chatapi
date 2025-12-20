@@ -56,8 +56,8 @@ func NewServer(
 	protectedMux.HandleFunc("GET /admin/dead-letters", restHandler.AuthMiddleware(restHandler.HandleGetDeadLetters))
 
 	// Register public routes
-	mux.HandleFunc("GET /health", restHandler.HandleHealth)
-	mux.HandleFunc("GET /ws", wsHandler.HandleConnection)
+	mux.HandleFunc("/health", restHandler.HandleHealth)
+	mux.HandleFunc("/ws", wsHandler.HandleConnection)
 
 	// Mount protected routes with auth middleware
 	mux.Handle("/", restHandler.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {

@@ -129,6 +129,11 @@ func (h *Handler) requireUserID(w http.ResponseWriter, r *http.Request) string {
 
 // HandleHealth health check endpoint
 func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	uptime := time.Since(h.startTime)
 
 	// Test database writability
