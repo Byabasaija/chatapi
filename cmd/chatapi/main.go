@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/hastenr/chatapi/internal/config"
 	"github.com/hastenr/chatapi/internal/db"
 	"github.com/hastenr/chatapi/internal/services/delivery"
@@ -23,6 +24,9 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+	// Load .env file if present
+	_ = godotenv.Load()
 
 	// Load configuration
 	cfg, err := config.Load()
