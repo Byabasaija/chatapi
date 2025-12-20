@@ -196,4 +196,3 @@ Now that you have tenants set up:
 - [Create Tenant API](/api/rest/#create-tenant-admin)
 - [Authentication Guide](/api/)
 - [Configuration Options](/getting-started/)</content>
-<parameter name="filePath">/Users/pascal/projects/chatapi/docs/content/guides/tenants/_index.md
