@@ -49,6 +49,9 @@ ChatAPI uses environment variables for configuration. Create a `.env` file or se
 export LISTEN_ADDR=":8080"
 export DATABASE_DSN="file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000"
 
+# Admin configuration (required for tenant creation)
+export MASTER_API_KEY="your-secure-master-key-here"
+
 # Optional: Database directory
 export DATA_DIR="./data"
 
@@ -61,13 +64,15 @@ export LOG_LEVEL="info"
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LISTEN_ADDR` | `:8080` | Server listen address |
-| `DATABASE_DSN` | `file:chatapi.db` | SQLite database connection string |
-| `DATA_DIR` | `./` | Directory for data files |
+| `DATABASE_DSN` | `file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000` | SQLite database connection string |
+| `MASTER_API_KEY` | `` | Master API key for admin operations (required for tenant creation) |
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
-| `WAL_AUTOCHECKPOINT` | `1000` | WAL checkpoint frequency |
+| `DEFAULT_RATE_LIMIT` | `100` | Requests per second per tenant |
+| `DATA_DIR` | `/var/chatapi` | Directory for data files |
+| `LOG_DIR` | `/var/log/chatapi` | Directory for log files |
+| `WORKER_INTERVAL` | `30s` | Background worker interval |
 | `RETRY_MAX_ATTEMPTS` | `5` | Max delivery retry attempts |
 | `RETRY_INTERVAL` | `30s` | Retry interval |
-| `WORKER_INTERVAL` | `30s` | Background worker interval |
 | `SHUTDOWN_DRAIN_TIMEOUT` | `10s` | Graceful shutdown timeout |
 
 ## Running ChatAPI

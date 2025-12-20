@@ -24,13 +24,14 @@ Key components:
 - **Build**: `go build ./cmd/chatapi`
 - **Run**: Set env vars (`LISTEN_ADDR`, `DATABASE_DSN`, `MASTER_API_KEY`), `./chatapi`
 - **Health**: `GET /health` for uptime and DB check
+- **Create Tenant**: `POST /admin/tenants` with `X-Master-Key` header
 - **Debug**: `LOG_LEVEL=debug`, use `slog` for tracing
 - **Migrations**: Auto-run on start; add new `.sql` in `internal/db/migrations/`
 
 ## Conventions
 
 - **Services**: Take `*sql.DB`, return structs from `internal/models`
-- **Handlers**: Use `AuthMiddleware` for tenant/rate limit; parse JSON requests
+- **Handlers**: Use `AuthMiddleware` for tenant/rate limit; parse JSON requests; admin endpoints use `X-Master-Key`
 - **WS**: Gorilla/websocket; JSON messages; reconnect sync missed messages
 - **Errors**: Wrap with `fmt.Errorf`, log with `slog.Error`
 - **IDs**: UUID for messages, deterministic keys for DMs (`dm:min:max`)

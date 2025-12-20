@@ -9,12 +9,28 @@ The ChatAPI REST API provides HTTP endpoints for chat operations. All endpoints 
 
 ## Authentication
 
+### Standard Endpoints
+
 Include these headers with every request:
 
 ```
 X-API-Key: your-tenant-api-key
 X-User-Id: user-identifier
 ```
+
+- **X-API-Key**: Identifies your tenant (organization)
+- **X-User-Id**: Identifies the user performing the action
+
+### Admin Endpoints
+
+Admin endpoints require master API key authentication:
+
+```
+X-Master-Key: your-master-api-key
+```
+
+- **X-Master-Key**: Master key for administrative operations (set via `MASTER_API_KEY` env var)
+- Used for tenant creation and system administration
 
 ## Rooms
 
@@ -232,6 +248,44 @@ GET /health
   "db_writable": true
 }
 ```
+
+### Create Tenant (Admin)
+
+Create a new tenant with auto-generated API key (admin only).
+
+```http
+POST /admin/tenants
+```
+
+**Authentication:**
+```
+X-Master-Key: your-master-api-key
+```
+
+**Request Body:**
+```json
+{
+  "name": "MyCompany"
+}
+```
+
+**Response:**
+```json
+{
+  "tenant_id": "tenant_abc123",
+  "api_key": "sk_abc123def456ghi789jkl012mno345pqr678stu901vwx",
+  "name": "MyCompany",
+  "created_at": "2025-12-13T12:00:00Z"
+}
+```
+
+**Status Codes:**
+- `201` - Tenant created successfully
+- `400` - Invalid request parameters
+- `401` - Invalid master API key
+- `500` - Server error
+
+**Security Note:** Store the returned `api_key` securely - it cannot be retrieved later.
 
 ### Dead Letters (Admin)
 

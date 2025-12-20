@@ -131,6 +131,12 @@ cd docs && hugo server
 | `LOG_LEVEL` | `info` | Logging level (debug, info, warn, error) |
 | `DEFAULT_RATE_LIMIT` | `100` | Requests per second per tenant |
 | `MASTER_API_KEY` | `` | Master API key for admin operations (required for tenant creation) |
+| `DATA_DIR` | `/var/chatapi` | Directory for data files |
+| `LOG_DIR` | `/var/log/chatapi` | Directory for log files |
+| `WORKER_INTERVAL` | `30s` | Background worker interval |
+| `RETRY_MAX_ATTEMPTS` | `5` | Max delivery retry attempts |
+| `RETRY_INTERVAL` | `30s` | Retry interval |
+| `SHUTDOWN_DRAIN_TIMEOUT` | `10s` | Graceful shutdown timeout |
 
 See [Configuration Guide](https://hastenr.github.io/chatapi/getting-started/) for all options.
 

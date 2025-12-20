@@ -21,6 +21,14 @@ X-User-Id: <user-identifier>
 - **X-API-Key**: Identifies your tenant (organization)
 - **X-User-Id**: Identifies the user performing the action
 
+**Admin Operations**: System administration endpoints require:
+
+```
+X-Master-Key: <your-master-api-key>
+```
+
+- **X-Master-Key**: Master key for tenant creation and admin operations
+
 ## API Overview
 
 ChatAPI provides both REST and WebSocket APIs for building chat applications. All APIs require authentication and return JSON responses.
@@ -33,6 +41,7 @@ Traditional HTTP endpoints for chat operations:
 - **Messages**: Send and retrieve messages
 - **Delivery**: Acknowledge message delivery
 - **Notifications**: Send notifications to users
+- **Admin**: Tenant management and system administration
 - **Health**: Service health monitoring
 
 ### WebSocket API
