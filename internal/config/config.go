@@ -38,6 +38,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		ListenAddr:           getEnv("LISTEN_ADDR", ":8080"),
 		DataDir:              getEnv("DATA_DIR", "/var/chatapi"),
+		LogDir:               getEnv("LOG_DIR", "/var/log/chatapi"),
 		DatabaseDSN:          getEnv("DATABASE_DSN", "file:chatapi.db?_journal_mode=WAL&_busy_timeout=5000"),
 		LogLevel:             getEnv("LOG_LEVEL", "info"),
 		DefaultRateLimit:     getEnvAsInt("DEFAULT_RATE_LIMIT", 100),
