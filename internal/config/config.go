@@ -11,6 +11,7 @@ type Config struct {
 	// Server configuration
 	ListenAddr           string
 	DataDir              string
+	LogDir               string
 
 	// Database configuration
 	DatabaseDSN          string
