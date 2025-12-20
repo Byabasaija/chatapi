@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 //go:embed migrations/*.sql
@@ -19,10 +19,7 @@ type DB struct {
 
 // New creates a new database connection
 func New(dsn string) (*DB, error) {
-	// Register the SQLite driver
-	sql.Register("sqlite", &sqlite.Driver{})
-
-	db, err := sql.Open("sqlite", dsn)
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
